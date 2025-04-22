@@ -1,0 +1,86 @@
+(* Top-level structures *)
+Query ::= AskQuery | TellQuery | FindQuery | ShowQuery | GetQuery | HowManyQuery ;
+
+(* Main query types *)
+AskQuery ::= "ASK" Source "FOR" FieldList [ConditionClause] [GroupClause] [OrderClause] [LimitClause] ;
+TellQuery ::= "TELL" Source "TO" Action [ConditionClause] ;
+FindQuery ::= "FIND" Items ["IN" Source] ["THAT" | "WHERE" | "WHICH"] ConditionExpr [GroupClause] [OrderClause] [LimitClause] ;
+ShowQuery ::= "SHOW" ["ME"] FieldList "FROM" Source [ConditionClause] [GroupClause] [OrderClause] [LimitClause] ;
+GetQuery ::= "GET" FieldList "FROM" Source [ConditionClause] [GroupClause] [OrderClause] [LimitClause] ;
+HowManyQuery ::= "HOW" "MANY" Items [Source] ["HAVE" | "ARE"] ConditionExpr ;
+
+(* Data source definitions *)
+Source ::= Identifier | SourceWithJoin | SourceWithAlias ;
+SourceWithJoin ::= Source ("AND" | "WITH") Source ["WHEN" | "WHERE"] JoinCondition ;
+SourceWithAlias ::= Source "AS" Identifier ;
+Items ::= Identifier | "*" ;
+
+(* Field specifications *)
+FieldList ::= Field {"," Field} ;
+Field ::= Identifier | QualifiedField | AggregateFunction | ComputedField ;
+QualifiedField ::= Identifier "." Identifier ;
+AggregateFunction ::= ("SUM" | "AVG" | "COUNT" | "MIN" | "MAX") "(" Field ")" ;
+ComputedField ::= Expression "AS" Identifier ;
+
+(* Conditions *)
+ConditionClause ::= ("IF" | "WHEN" | "WHERE") ConditionExpr ;
+ConditionExpr ::= SimpleCondition {LogicalOp SimpleCondition} ;
+SimpleCondition ::= Comparison | InCondition | BetweenCondition | ExistsCondition | ("(" ConditionExpr ")") ;
+Comparison ::= Expression ComparisonOp Expression ;
+InCondition ::= Expression "IN" "(" ValueList ")" ;
+BetweenCondition ::= Expression "BETWEEN" Expression "AND" Expression ;
+ExistsCondition ::= Field "EXISTS" ;
+JoinCondition ::= Field "=" Field ;
+
+(* Expressions and operators *)
+Expression ::= Term {AddOp Term} ;
+Term ::= Factor {MulOp Factor} ;
+Factor ::= Value | "(" Expression ")" | UnaryOp Factor | FunctionCall ;
+Value ::= Literal | Field ;
+Literal ::= StringLiteral | NumberLiteral | BooleanLiteral | NullLiteral ;
+LogicalOp ::= "AND" | "OR" | "BUT" "NOT" ;
+ComparisonOp ::= "=" | ">" | "<" | ">=" | "<=" | "!=" | "LIKE" ;
+AddOp ::= "+" | "-" ;
+MulOp ::= "*" | "/" | "%" ;
+UnaryOp ::= "-" | "NOT" ;
+
+(* Function calls *)
+FunctionCall ::= Identifier "(" [ExpressionList] ")" ;
+ExpressionList ::= Expression {"," Expression} ;
+
+(* Modification actions *)
+Action ::= "ADD" Expression [RecordSpec] | "REMOVE" [ConditionExpr] | "UPDATE" UpdateList | "CREATE" FieldDefList ;
+UpdateList ::= UpdateItem {"," UpdateItem} ;
+UpdateItem ::= Field "=" Expression ;
+RecordSpec ::= "WITH" FieldValuePairs ;
+FieldValuePairs ::= FieldValuePair {"," FieldValuePair} ;
+FieldValuePair ::= Field "=" Expression ;
+FieldDefList ::= FieldDef {"," FieldDef} ;
+FieldDef ::= Field [TypeSpec] [Constraints] ;
+TypeSpec ::= "AS" DataType ;
+Constraints ::= "(" Constraint {"," Constraint} ")" ;
+Constraint ::= "REQUIRED" | "UNIQUE" | "DEFAULT" Expression ;
+
+(* Organization clauses *)
+GroupClause ::= "GROUP" "BY" FieldList ["HAVING" ConditionExpr] ;
+OrderClause ::= "SORT" "BY" SortList | "ORDER" "BY" SortList ;
+SortList ::= SortItem {"," SortItem} ;
+SortItem ::= Field ["ASC" | "DESC"] ;
+LimitClause ::= "LIMIT" NumberLiteral ["OFFSET" NumberLiteral] ;
+
+(* Basic elements *)
+Identifier ::= Letter {Letter | Digit | "_"} ;
+ValueList ::= Expression {"," Expression} ;
+DataType ::= "TEXT" | "NUMBER" | "INTEGER" | "DECIMAL" | "DATE" | "BOOLEAN" | "MAP" | "LIST" ;
+
+(* Literals *)
+StringLiteral ::= "'" {Character} "'" | '"' {Character} '"' ;
+NumberLiteral ::= Digit {Digit} ["." {Digit}] ;
+BooleanLiteral ::= "TRUE" | "FALSE" ;
+NullLiteral ::= "NULL" ;
+
+(* Terminals *)
+Letter ::= "A" | "B" | ... | "Z" | "a" | "b" | ... | "z" ;
+Digit ::= "0" | "1" | ... | "9" ;
+Character ::= Letter | Digit | Symbol ;
+Symbol ::= "!" | "@" | "#" | "$" | "%" | "^" | "&" | "*" | "(" | ")" | ... ;
