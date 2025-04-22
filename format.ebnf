@@ -1,7 +1,7 @@
-(* Top-level structures *)
+(* Top-Level Structures *)
 Query ::= AskQuery | TellQuery | FindQuery | ShowQuery | GetQuery | HowManyQuery ;
 
-(* Main query types *)
+(* Main Query Types *)
 AskQuery ::= "ASK" Source "FOR" FieldList [ConditionClause] [GroupClause] [OrderClause] [LimitClause] ;
 TellQuery ::= "TELL" Source "TO" Action [ConditionClause] ;
 FindQuery ::= "FIND" Items ["IN" Source] ["THAT" | "WHERE" | "WHICH"] ConditionExpr [GroupClause] [OrderClause] [LimitClause] ;
@@ -9,46 +9,56 @@ ShowQuery ::= "SHOW" ["ME"] FieldList "FROM" Source [ConditionClause] [GroupClau
 GetQuery ::= "GET" FieldList "FROM" Source [ConditionClause] [GroupClause] [OrderClause] [LimitClause] ;
 HowManyQuery ::= "HOW" "MANY" Items [Source] ["HAVE" | "ARE"] ConditionExpr ;
 
-(* Data source definitions *)
+(* Data Source Definitions *)
 Source ::= Identifier | SourceWithJoin | SourceWithAlias ;
 SourceWithJoin ::= Source ("AND" | "WITH") Source ["WHEN" | "WHERE"] JoinCondition ;
 SourceWithAlias ::= Source "AS" Identifier ;
 Items ::= Identifier | "*" ;
 
-(* Field specifications *)
+(* Field Definitions *)
 FieldList ::= Field {"," Field} ;
 Field ::= Identifier | QualifiedField | AggregateFunction | ComputedField ;
 QualifiedField ::= Identifier "." Identifier ;
 AggregateFunction ::= ("SUM" | "AVG" | "COUNT" | "MIN" | "MAX") "(" Field ")" ;
 ComputedField ::= Expression "AS" Identifier ;
 
-(* Conditions *)
+(* Condition Clauses *)
 ConditionClause ::= ("IF" | "WHEN" | "WHERE") ConditionExpr ;
 ConditionExpr ::= SimpleCondition {LogicalOp SimpleCondition} ;
-SimpleCondition ::= Comparison | InCondition | BetweenCondition | ExistsCondition | ("(" ConditionExpr ")") ;
+SimpleCondition ::= Comparison | InCondition | BetweenCondition | ExistsCondition | PathCondition | ("(" ConditionExpr ")") ;
 Comparison ::= Expression ComparisonOp Expression ;
-InCondition ::= Expression "IN" "(" ValueList ")" ;
+InCondition ::= Expression "IN" "(" Expression ")" ;
 BetweenCondition ::= Expression "BETWEEN" Expression "AND" Expression ;
 ExistsCondition ::= Field "EXISTS" ;
+PathCondition ::= Expression "HAS" "PATH" PathExpression ;
 JoinCondition ::= Field "=" Field ;
 
-(* Expressions and operators *)
+(* Path expressions for Map, Jsonb and Graph types *)
+PathExpression ::= Identifier {"." Identifier} | Identifier {"[" (Identifier | NumberLiteral) "]"} ;
+
+(* Graph Traversal *)
+GraphTraversal ::= "TRAVERSE" Field ["FROM" NodeSpec] ["TO" NodeSpec] ["VIA" EdgeSpec] [TraversalLimit] ;
+NodeSpec ::= Identifier | ConditionExpr ;
+EdgeSpec ::= Identifier | ConditionExpr ;
+TraversalLimit ::= "DEPTH" NumberLiteral | "MAX" NumberLiteral "HOPS" ;
+
+(* Expressions and Operators *)
 Expression ::= Term {AddOp Term} ;
 Term ::= Factor {MulOp Factor} ;
 Factor ::= Value | "(" Expression ")" | UnaryOp Factor | FunctionCall ;
 Value ::= Literal | Field ;
-Literal ::= StringLiteral | NumberLiteral | BooleanLiteral | NullLiteral ;
+Literal ::= StringLiteral | NumberLiteral | BooleanLiteral | NullLiteral | JsonLiteral | MapLiteral | GraphLiteral | DatetimeLiteral ;
 LogicalOp ::= "AND" | "OR" | "BUT" "NOT" ;
 ComparisonOp ::= "=" | ">" | "<" | ">=" | "<=" | "!=" | "LIKE" ;
 AddOp ::= "+" | "-" ;
 MulOp ::= "*" | "/" | "%" ;
 UnaryOp ::= "-" | "NOT" ;
 
-(* Function calls *)
+(* Function Calls *)
 FunctionCall ::= Identifier "(" [ExpressionList] ")" ;
 ExpressionList ::= Expression {"," Expression} ;
 
-(* Modification actions *)
+(* Modification Actions *)
 Action ::= "ADD" Expression [RecordSpec] | "REMOVE" [ConditionExpr] | "UPDATE" UpdateList | "CREATE" FieldDefList ;
 UpdateList ::= UpdateItem {"," UpdateItem} ;
 UpdateItem ::= Field "=" Expression ;
@@ -61,26 +71,66 @@ TypeSpec ::= "AS" DataType ;
 Constraints ::= "(" Constraint {"," Constraint} ")" ;
 Constraint ::= "REQUIRED" | "UNIQUE" | "DEFAULT" Expression ;
 
-(* Organization clauses *)
+(* Organisation Clauses *)
 GroupClause ::= "GROUP" "BY" FieldList ["HAVING" ConditionExpr] ;
 OrderClause ::= "SORT" "BY" SortList | "ORDER" "BY" SortList ;
 SortList ::= SortItem {"," SortItem} ;
 SortItem ::= Field ["ASC" | "DESC"] ;
 LimitClause ::= "LIMIT" NumberLiteral ["OFFSET" NumberLiteral] ;
 
-(* Basic elements *)
+(* Basic Elements *)
 Identifier ::= Letter {Letter | Digit | "_"} ;
 ValueList ::= Expression {"," Expression} ;
-DataType ::= "TEXT" | "NUMBER" | "INTEGER" | "DECIMAL" | "DATE" | "BOOLEAN" | "MAP" | "LIST" ;
 
-(* Literals *)
+(* Data Types - SQL and NoSQL *)
+DataTypr ::=
+    (* SQL Types *)
+    "INTEGER" | "INT" |
+    "DOUBLE" |
+    "FLOAT" |
+    "DECIMAL" |
+    "JSONB" |
+    "DATETIME" | "TIMESTAMP" |
+    "VARCHAR" | "STRING" | "TEXT" |
+    (* NoSQL Types *)
+    "MAP" |
+    "GRAPH" |
+    "BOOLEAN" | "BOOL" |
+    "LIST" | "ARRAY" ;
+
+(* Complex Literals *)
+JsonLiteral ::= "{" [JsonPairs] "}" | "[" [JsonItems] "]" ;
+JsonPairs ::= JsonPair {"," JsonPair} ;
+JsonPair ::= StringLiteral ":" JsonValue ;
+JsonItems ::= JsonValue {"," JsonValue} ;
+JsonValue ::= Literal | JsonLiteral ;
+
+MapLiteral ::= "MAP" "{" [MapPairs] "}" ;
+MapPairs ::= MapPair {"," MapPair} ;
+MapPair ::= Expression ":" Expression ;
+
+GraphLiteral ::= "GRAPH" "(" [NodeList] "," [EdgeList] ")" ;
+NodeList ::= "NODES" ":" "[" [NodeDefinitions] "]" ;
+EdgeList ::= "EDGES" ":" "[" [EdgeDefinitions] "]" ;
+NodeDefinitions ::= NodeDefinition {"," NodeDefinition} ;
+NodeDefinition ::= "{" "ID" ":" Expression ["," FieldValuePairs] "}" ;
+EdgeDefinitions ::= EdgeDefinition {"," EdgeDefinition} ;
+EdgeDefinition ::= "{" "FROM" ":" Expression "," "TO" ":" Expression ["," FieldValuePairs] "}" ;
+
+DatetimeLiteral ::= "DATE" StringLiteral | "TIMESTAMP" StringLiteral | "NOW" "(" ")" ;
+
+(* Basic Literals *)
 StringLiteral ::= "'" {Character} "'" | '"' {Character} '"' ;
-NumberLiteral ::= Digit {Digit} ["." {Digit}] ;
+NumberLiteral ::= IntegerLiteral | FloatLiteral | DoubleLiteral | DecimalLiteral ;
+IntegerLiteral ::= Digit {Digit} ;
+FloatLiteral ::= Digit {Digit} "." {Digit} ["F"] ;
+DoubleLiteral ::= Digit {Digit} "." {Digit} ["D"] ;
+DecimalLiteral ::= Digit {Digit} "." {Digit} ["M"] ;
 BooleanLiteral ::= "TRUE" | "FALSE" ;
 NullLiteral ::= "NULL" ;
 
 (* Terminals *)
-Letter ::= "A" | "B" | ... | "Z" | "a" | "b" | ... | "z" ;
+Letter ::= "A" | "B" | ... | "Z" | "a" | "b" | ... "z" ;
 Digit ::= "0" | "1" | ... | "9" ;
 Character ::= Letter | Digit | Symbol ;
 Symbol ::= "!" | "@" | "#" | "$" | "%" | "^" | "&" | "*" | "(" | ")" | ... ;
