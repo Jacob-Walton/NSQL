@@ -59,7 +59,7 @@ typedef enum {
     TOKEN_RPAREN,      // )
     TOKEN_EOF,         // End of input
     TOKEN_ERROR,       // Error token
-    TOKEN_PLEASE       // Don't forget your manners
+    TOKEN_TERMINATOR   // ; or PLEASE (depending on how polite you are)
 } TokenType;
 
 typedef struct {

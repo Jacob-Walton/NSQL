@@ -262,11 +262,11 @@ static TokenType identifier_type(Lexer* lexer) {
                 }
             }
             break;
-            case 'P':
+        case 'P':
             if (lexer->current - lexer->start > 1) {
                 switch (lexer->start[1]) {
                     case 'L':
-                        return check_keyword(lexer, 2, 4, "EASE", TOKEN_PLEASE);
+                        return check_keyword(lexer, 2, 4, "EASE", TOKEN_TERMINATOR);
                 }
             }
             break;
@@ -433,6 +433,8 @@ Token lexer_next_token(Lexer* lexer) {
             return make_token(lexer, TOKEN_PERCENT);
         case '"':
             return string(lexer);
+        case ';':
+            return make_token(lexer, TOKEN_TERMINATOR);
     }
 
     return error_token(lexer, "Unexpected character.");

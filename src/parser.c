@@ -2085,9 +2085,9 @@ Node* parse_program(Parser* parser) {
             
             program->as.program.statements[program->as.program.count++] = stmt;
             
-            // Look for a PLEASE statement ender
-            if (!check(parser, TOKEN_EOF) && !match(parser, TOKEN_PLEASE)) {
-                error_at_current(parser, "Expected 'PLEASE' after statement");
+            // Look for a PLEASE or ; statement ender
+            if (!check(parser, TOKEN_EOF) && !match(parser, TOKEN_TERMINATOR)) {
+                error_at_current(parser, "Expected 'PLEASE'  or ';' after statement");
                 break;
             }
         } else {

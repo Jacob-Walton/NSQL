@@ -1,0 +1,47 @@
+>> This is a sample NSQL query that demonstrates syntax highlighting
+
+FIND customers IN premium_users 
+WHERE age > 30 AND subscription_type = 'annual'
+ORDER BY join_date DESC
+LIMIT 10;
+
+>> Getting order details with aggregates
+ASK orders FOR 
+  customer_id,
+  SUM(total_amount) AS total_spent,
+  COUNT(order_id) AS order_count,
+  MAX(order_date) AS last_order
+FROM order_history
+WHERE status = "completed" 
+  AND total_amount > 100.50
+  AND order_date BETWEEN DATE "2024-01-01" AND NOW()
+GROUP BY customer_id
+HAVING total_spent > 1000;
+
+>> Updating customer information
+TELL customers TO UPDATE 
+  status = "VIP",
+  credit_limit = credit_limit + 500
+WHERE customer_id IN (
+  GET customer_id FROM premium_users
+  WHERE loyalty_points > 5000
+);
+
+>> Creating a new data structure
+TELL database TO CREATE
+  order_analytics AS MAP {
+    "metadata": {
+      "created_at": NOW(),
+      "version": "1.0"
+    },
+    "settings": {
+      "refresh_interval": 24,
+      "retention_days": 90
+    }
+  };
+
+>> How many query
+HOW MANY orders FROM transactions HAVE
+  payment_method = "credit_card" AND
+  amount > 1000 AND
+  NOT status = "refunded";

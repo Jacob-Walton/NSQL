@@ -41,9 +41,9 @@ int main() {
         }
         buffer += line;
         
-        // Check if the statement is complete (ends with PLEASE)
+        // Check if the statement is complete (ends with PLEASE or ;)
         bool isComplete = false;
-        if (line.find("PLEASE") != std::string::npos) {
+        if (line.find("PLEASE") != std::string::npos || line.find(';') != std::string::npos) {
             continuing = false;
             isComplete = true;
         } else {
