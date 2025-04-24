@@ -1629,6 +1629,13 @@ void free_node(Node* node) {
         case NODE_ERROR:
             free(node->as.error.message);
             break;
+        
+        case NODE_PROGRAM:
+            for (int i = 0; i < node->as.program.count; i++) {
+                free_node(node->as.program.statements[i]);
+            }
+            free(node->as.program.statements);
+            break;
 
         default:
             break;
@@ -2018,8 +2025,80 @@ void print_ast(Node* node, int indent) {
             printf("ERROR: %s\n", node->as.error.message);
             break;
 
+            case NODE_PROGRAM:
+            printf("PROGRAM (%d statements):\n", node->as.program.count);
+            for (int i = 0; i < node->as.program.count; i++) {
+                print_indent(indent + 1);
+                printf("Statement %d:\n", i + 1);
+                print_ast(node->as.program.statements[i], indent + 2);
+            }
+            break;
+            
         default:
             printf("UNKNOWN NODE TYPE: %d\n", node->type);
             break;
     }
+}
+
+/**
+ * Parse a complete program, which may contain multiple queries
+ * 
+ * @param parser The parser instance.
+ * @return The AST node representing the program.
+ */
+/**
+ * Parse a complete program, which may contain multiple queries.
+ * 
+ * @param parser The parser instance.
+ * @return The AST node representing the program.
+ */
+Node* parse_program(Parser* parser) {
+    Node* program = create_node(NODE_PROGRAM);
+    program->line = parser->current.line;
+    
+    // Allocate initial space for statements
+    int capacity = 4;
+    program->as.program.statements = (Node**)malloc(capacity * sizeof(Node*));
+    if (program->as.program.statements == NULL) {
+        fprintf(stderr, "Error: Out of memory\n");
+        exit(EXIT_FAILURE);
+    }
+    
+    program->as.program.count = 0;
+    
+    // Parse statements until EOF
+    while (!check(parser, TOKEN_EOF)) {
+        // Parse a query
+        Node* stmt = parse_query(parser);
+        
+        // Add the statement to the program if parsing succeeded
+        if (stmt != NULL && !parser->had_error) {
+            if (program->as.program.count >= capacity) {
+                capacity *= 2;
+                program->as.program.statements = 
+                    (Node**)realloc(program->as.program.statements, capacity * sizeof(Node*));
+                if (program->as.program.statements == NULL) {
+                    fprintf(stderr, "Error: Out of memory\n");
+                    exit(EXIT_FAILURE);
+                }
+            }
+            
+            program->as.program.statements[program->as.program.count++] = stmt;
+            
+            // Look for a PLEASE statement ender
+            if (!check(parser, TOKEN_EOF) && !match(parser, TOKEN_PLEASE)) {
+                error_at_current(parser, "Expected 'PLEASE' after statement");
+                break;
+            }
+        } else {
+            // Skip to the next statement after an error
+            synchronize(parser);
+            if (parser->had_error) {
+                // If we couldn't recover, just exit
+                break;
+            }
+        }
+    }
+    
+    return program;
 }
