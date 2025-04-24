@@ -1,0 +1,2 @@
+>> This is a comment
+ASK employees AND departments WHERE employees.dept_id = departments.id FOR employees.name, departments.name, employees.salary PLEASE

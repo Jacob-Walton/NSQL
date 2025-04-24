@@ -1,5 +1,9 @@
 #pragma once
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 typedef enum {
     TOKEN_ASK,     // ASK
     TOKEN_TELL,    // TELL
@@ -54,7 +58,8 @@ typedef enum {
     TOKEN_LPAREN,      // (
     TOKEN_RPAREN,      // )
     TOKEN_EOF,         // End of input
-    TOKEN_ERROR        // Error token
+    TOKEN_ERROR,       // Error token
+    TOKEN_PLEASE       // Don't forget your manners
 } TokenType;
 
 typedef struct {
@@ -72,3 +77,7 @@ typedef struct {
 
 void  lexer_init(Lexer* lexer, const char* source);
 Token lexer_next_token(Lexer* lexer);
+
+#ifdef __cplusplus
+}
+#endif

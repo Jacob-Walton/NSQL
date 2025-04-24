@@ -1,5 +1,8 @@
-#ifndef PARSER_H
-#define PARSER_H
+#pragma once
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 #include <stdbool.h>
 #include "lexer.h"
@@ -61,7 +64,8 @@ typedef enum {
     NODE_CONSTRAINT,
 
     // Misc
-    NODE_ERROR
+    NODE_ERROR,
+    NODE_PROGRAM
 } NodeType;
 
 // Constraint types
@@ -242,11 +246,20 @@ struct Node {
         struct {
             char* message;
         } error;
+
+        // Program
+        struct {
+            Node** statements;
+            int count;
+        } program;
     } as;
 };
 
 // Initialize parser
 void parser_init(Parser* parser, Lexer* lexer);
+
+// Parse statements
+Node* parse_program(Parser* parser);
 
 // Parse NSQL query - returns AST root
 Node* parse_query(Parser* parser);
@@ -257,4 +270,6 @@ void free_node(Node* node);
 // Print AST for debugging
 void print_ast(Node* node, int indent);
 
+#ifdef __cplusplus
+}
 #endif

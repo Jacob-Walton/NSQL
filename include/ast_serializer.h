@@ -1,5 +1,9 @@
 #pragma once
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
@@ -111,3 +115,7 @@ bool ast_extract_metadata(const SerializedAST* ast, ExecutionMetadata* metadata)
  * @return true if query should use NoSQL, false if SQL
  */
 bool ast_is_nosql_query(const Node* node);
+
+#ifdef __cplusplus
+}
+#endif
