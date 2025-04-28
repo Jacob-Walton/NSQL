@@ -1,12 +1,13 @@
+#include "lexer.h"
 #include <ctype.h>
 #include <stdbool.h>
 #include <stdlib.h>
 #include <string.h>
-#include "lexer.h"
+
 
 /**
  * Initialize the lexer with source code.
- * 
+ *
  * @param lexer The lexer instance.
  * @param source The source code to be lexed.
  */
@@ -18,7 +19,7 @@ void lexer_init(Lexer* lexer, const char* source) {
 
 /**
  * Check if the current lexeme is at the end of the source.
- * 
+ *
  * @param lexer The lexer instance.
  * @return true if at end, false otherwise.
  */
@@ -28,7 +29,7 @@ static bool is_at_end(Lexer* lexer) {
 
 /**
  * Create a token with the current lexeme.
- * 
+ *
  * @param lexer The lexer instance.
  * @param type The token type.
  * @return The created token.
@@ -44,7 +45,7 @@ static Token make_token(Lexer* lexer, TokenType type) {
 
 /**
  * Create an error token.
- * 
+ *
  * @param lexer The lexer instance.
  * @param message The error message.
  * @return The created error token.
@@ -60,7 +61,7 @@ static Token error_token(Lexer* lexer, const char* message) {
 
 /**
  * Advance the current pointer and return the character.
- * 
+ *
  * @param lexer The lexer instance.
  * @return The character at the current position.
  */
@@ -70,7 +71,7 @@ static char advance(Lexer* lexer) {
 
 /**
  * Look at the current character without advancing.
- * 
+ *
  * @param lexer The lexer instance.
  * @return The current character.
  */
@@ -80,10 +81,10 @@ static char peek(Lexer* lexer) {
 
 /**
  * Look at the next character without advancing.
- * 
+ *
  * @param lexer The lexer instance.
  * @return The next character.
- */ 
+ */
 static char peek_next(Lexer* lexer) {
     if (is_at_end(lexer))
         return '\0';
@@ -92,7 +93,7 @@ static char peek_next(Lexer* lexer) {
 
 /**
  * Skip whitespace and comments in the source code.
- * 
+ *
  * @param lexer The lexer instance.
  */
 static void skip_whitespace(Lexer* lexer) {
@@ -110,8 +111,8 @@ static void skip_whitespace(Lexer* lexer) {
                 break;
             case '>':  // Comment
                 if (peek_next(lexer) == '>') {
-                    advance(lexer); // consume first '>'
-                    advance(lexer); // consume second '>'
+                    advance(lexer);  // consume first '>'
+                    advance(lexer);  // consume second '>'
                     while (peek(lexer) != '\n' && !is_at_end(lexer)) {
                         advance(lexer);
                     }
@@ -126,7 +127,7 @@ static void skip_whitespace(Lexer* lexer) {
 
 /**
  * Check if character is a valid identifier start.
- * 
+ *
  * @param c The character to check.
  * @return true if valid, false otherwise.
  */
@@ -136,7 +137,7 @@ static bool is_alpha(char c) {
 
 /**
  * Check if character is a valid identifier character.
- * 
+ *
  * @param c The character to check.
  * @return true if valid, false otherwise.
  */
@@ -146,7 +147,7 @@ static bool is_alnum(char c) {
 
 /**
  * Check if the current lexeme matches a keyword.
- * 
+ *
  * @param lexer The lexer instance.
  * @param start The starting index of the keyword.
  * @param length The length of the keyword.
@@ -155,7 +156,7 @@ static bool is_alnum(char c) {
  * @return The token type if it matches, otherwise TOKEN_IDENTIFIER.
  */
 static TokenType check_keyword(Lexer* lexer, int start, int length, const char* rest,
-                                TokenType type) {
+                               TokenType type) {
     if (lexer->current - lexer->start == start + length &&
         memcmp(lexer->start + start, rest, length) == 0) {
         return type;
@@ -335,7 +336,7 @@ static TokenType identifier_type(Lexer* lexer) {
 
 /**
  * Scan an identifier.
- * 
+ *
  * @param lexer The lexer instance.
  */
 static Token identifier(Lexer* lexer) {
@@ -346,7 +347,7 @@ static Token identifier(Lexer* lexer) {
 
 /**
  * Scan a number.
- * 
+ *
  * @param lexer The lexer instance.
  */
 static Token number(Lexer* lexer) {
@@ -365,12 +366,15 @@ static Token number(Lexer* lexer) {
 
 /**
  * Scan a string literal.
- * 
+ *
  * @param lexer The lexer instance.
  * @return The created string token.
  */
 static Token string(Lexer* lexer) {
-    while (peek(lexer) != '"' && !is_at_end(lexer)) {
+    // Save the opening quote character to verify closing quote later
+    char quote = lexer->start[0];
+
+    while ((peek(lexer) != quote) && !is_at_end(lexer)) {
         if (peek(lexer) == '\n')
             lexer->line++;
         advance(lexer);
@@ -379,14 +383,14 @@ static Token string(Lexer* lexer) {
     if (is_at_end(lexer))
         return error_token(lexer, "Unterminated string.");
 
-    // The closing quote
+    // Closing quote
     advance(lexer);
     return make_token(lexer, TOKEN_STRING);
 }
 
 /**
  * Get the next token from the lexer.
- * 
+ *
  * @param lexer The lexer instance.
  * @return The next token.
  */
@@ -432,6 +436,7 @@ Token lexer_next_token(Lexer* lexer) {
         case '%':
             return make_token(lexer, TOKEN_PERCENT);
         case '"':
+        case '\'':
             return string(lexer);
         case ';':
             return make_token(lexer, TOKEN_TERMINATOR);

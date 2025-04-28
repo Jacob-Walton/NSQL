@@ -2,6 +2,12 @@
 
 All notable changes to the "nsql" repository will be documented in this file.
 
+## [Unreleased] - 2025-04-28
+
+### Changed
+
+- Added support for both `'` and `"` as string delimiters in the lexer. It now also verifies that the opening and closing delimiters match.
+
 ## [Unreleased] - 2025-04-24
 
 ### Added
