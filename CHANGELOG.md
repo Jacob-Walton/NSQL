@@ -6,6 +6,12 @@ All notable changes to the "nsql" repository will be documented in this file.
 
 ### Changed
 
+- Moved repl to [MonoDB](https://github.com/Jacob-Walton/MonoDB) repository.
+
+## [Unreleased] - 2025-04-28
+
+### Changed
+
 - Added support for both `'` and `"` as string delimiters in the lexer. It now also verifies that the opening and closing delimiters match.
 
 ## [Unreleased] - 2025-04-24

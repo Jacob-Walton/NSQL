@@ -27,6 +27,8 @@ set(NSQL_SOURCES
     src/lexer.c
     src/parser.c
     src/ast_serializer.c
+    src/ast_printer.c
+    src/error_reporter.c
 )
 
 # Build NSQL as a static library
@@ -51,8 +53,15 @@ if (ENABLE_SYNC_RECOVERY)
     target_compile_definitions(nsql PRIVATE ENABLE_SYNC_RECOVERY=1)
 endif()
 
-# REPL executable
-add_subdirectory(repl)
+# Installation
+install(TARGETS nsql
+    LIBRARY DESTINATION lib
+    ARCHIVE DESTINATION lib
+)
+
+install(DIRECTORY include/
+    DESTINATION include
+)
 
 # Tests
 option(BUILD_TESTS "Build tests" ON)

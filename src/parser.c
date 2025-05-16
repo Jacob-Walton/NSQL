@@ -1,4 +1,4 @@
-#include "parser.h"
+#include <nsql/parser.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -39,15 +39,39 @@ static Node* parse_function_call(Parser* parser);
 
 // Util functions
 static void        advance(Parser* parser);
-static bool        check(Parser* parser, TokenType type);
-static bool        match(Parser* parser, TokenType type);
-static void        consume(Parser* parser, TokenType type, const char* message);
+static bool        check(Parser* parser, NsqlTokenType type);
+static bool        match(Parser* parser, NsqlTokenType type);
+static void        consume(Parser* parser, NsqlTokenType type, const char* message);
 static void        error_at_current(Parser* parser, const char* message);
 static void        error_at(Parser* parser, Token* token, const char* message);
 static void        synchronize(Parser* parser);
 static Node*       create_node(NodeType type);
 static char*       copy_token_string(Token* token);
-static const char* token_type_to_op_string(TokenType type);
+static const char* token_type_to_op_string(NsqlTokenType type);
+
+/**
+ * Format parser errors into a string
+ *
+ * @param parser The parser instance.
+ * @param buffer The buffer to write to.
+ * @param size The size of the buffer.
+ * @return The number of bytes written (excluding null terminator).
+ */
+size_t parser_format_errors(Parser* parser, char* buffer, size_t size) {
+    return format_errors(&parser->errors, buffer, size);
+}
+
+/**
+ * Format parser errors as JSON
+ *
+ * @param parser The parser instance.
+ * @param buffer The buffer to write to.
+ * @param size The size of the buffer.
+ * @return The number of bytes written (excluding null terminator).
+ */
+size_t parser_format_errors_json(Parser* parser, char* buffer, size_t size) {
+    return format_errors_json(&parser->errors, buffer, size);
+}
 
 /**
  * Initialize the parser with a lexer.
@@ -59,12 +83,22 @@ void parser_init(Parser* parser, Lexer* lexer) {
     parser->lexer            = lexer;
     parser->had_error        = false;
     parser->panic_mode       = false;
-    parser->error.message    = NULL;
-    parser->error.line       = 0;
-    parser->error.panic_mode = false;
+    
+    // Initialize error context
+    error_context_init(&parser->errors);
 
     // Prime the parser with the first token
     advance(parser);
+}
+
+/**
+ * Free parser resources.
+ *
+ * @param parser The parser instance.
+ */
+void parser_free(Parser* parser) {
+    // Free error context
+    error_context_free(&parser->errors);
 }
 
 /**
@@ -92,7 +126,7 @@ static void advance(Parser* parser) {
  *
  * @return true if the token matches the expected type, false otherwise.
  */
-static bool check(Parser* parser, TokenType type) {
+static bool check(Parser* parser, NsqlTokenType type) {
     return parser->current.type == type;
 }
 
@@ -103,7 +137,7 @@ static bool check(Parser* parser, TokenType type) {
  * @param type The expected token type.
  * @return true if the token was consumed, false otherwise.
  */
-static bool match(Parser* parser, TokenType type) {
+static bool match(Parser* parser, NsqlTokenType type) {
     if (!check(parser, type))
         return false;
     advance(parser);
@@ -118,7 +152,7 @@ static bool match(Parser* parser, TokenType type) {
  * @param type The expected token type.
  * @param message The error message to report if the token doesn't match.
  */
-static void consume(Parser* parser, TokenType type, const char* message) {
+static void consume(Parser* parser, NsqlTokenType type, const char* message) {
     if (parser->current.type == type) {
         advance(parser);
         return;
@@ -148,12 +182,14 @@ static void error_at(Parser* parser, Token* token, const char* message) {
     if (parser->panic_mode)
         return;
     parser->panic_mode = true;
+    parser->had_error = true;
+    
+    // Report the error to the error context
+    report_error(&parser->errors, ERROR_ERROR, ERROR_SOURCE_PARSER, 
+                token->line, token->length > 0 ? token->start - parser->lexer->start : 0,
+                message);
 
-    parser->error.message    = message;
-    parser->error.line       = token->line;
-    parser->error.panic_mode = true;
-    parser->had_error        = true;
-
+    // Print to stderr for immediate debugging
     fprintf(stderr, "[line %d] Error", token->line);
 
     if (token->type == TOKEN_EOF) {
@@ -245,7 +281,7 @@ static char* copy_token_string(Token* token) {
  * @param type The token type.
  * @return The operator string representation.
  */
-static const char* token_type_to_op_string(TokenType type) {
+static const char* token_type_to_op_string(NsqlTokenType type) {
     switch (type) {
         case TOKEN_PLUS:
             return "+";
@@ -1184,7 +1220,7 @@ static Node* parse_logic_or(Parser* parser) {
     Node* left = parse_logic_and(parser);
 
     while (match(parser, TOKEN_OR)) {
-        TokenType op               = parser->previous.type;
+        NsqlTokenType op               = parser->previous.type;
         Node*     right            = parse_logic_and(parser);
         Node*     node             = create_node(NODE_BINARY_EXPR);
         node->line                 = parser->previous.line;
@@ -1208,7 +1244,7 @@ static Node* parse_logic_and(Parser* parser) {
     Node* left = parse_equality(parser);
 
     while (match(parser, TOKEN_AND)) {
-        TokenType op               = parser->previous.type;
+        NsqlTokenType op               = parser->previous.type;
         Node*     right            = parse_equality(parser);
         Node*     node             = create_node(NODE_BINARY_EXPR);
         node->line                 = parser->previous.line;
@@ -1232,7 +1268,7 @@ static Node* parse_equality(Parser* parser) {
     Node* left = parse_comparison(parser);
 
     while (match(parser, TOKEN_EQUAL) || match(parser, TOKEN_NEQ)) {
-        TokenType op               = parser->previous.type;
+        NsqlTokenType op               = parser->previous.type;
         Node*     right            = parse_comparison(parser);
         Node*     node             = create_node(NODE_BINARY_EXPR);
         node->line                 = parser->previous.line;
@@ -1257,7 +1293,7 @@ static Node* parse_comparison(Parser* parser) {
 
     while (match(parser, TOKEN_LT) || match(parser, TOKEN_LTE) || match(parser, TOKEN_GT) ||
            match(parser, TOKEN_GTE)) {
-        TokenType op               = parser->previous.type;
+        NsqlTokenType op               = parser->previous.type;
         Node*     right            = parse_term(parser);
         Node*     node             = create_node(NODE_BINARY_EXPR);
         node->line                 = parser->previous.line;
@@ -1281,7 +1317,7 @@ static Node* parse_term(Parser* parser) {
     Node* left = parse_factor(parser);
 
     while (match(parser, TOKEN_PLUS) || match(parser, TOKEN_MINUS)) {
-        TokenType op               = parser->previous.type;
+        NsqlTokenType op               = parser->previous.type;
         Node*     right            = parse_factor(parser);
         Node*     node             = create_node(NODE_BINARY_EXPR);
         node->line                 = parser->previous.line;
@@ -1306,7 +1342,7 @@ static Node* parse_factor(Parser* parser) {
 
     while (match(parser, TOKEN_STAR) || match(parser, TOKEN_SLASH) ||
            match(parser, TOKEN_PERCENT)) {
-        TokenType op    = parser->previous.type;
+        NsqlTokenType op    = parser->previous.type;
         Node*     right = parse_unary(parser);
 
         Node* binary                 = create_node(NODE_BINARY_EXPR);
@@ -1328,7 +1364,7 @@ static Node* parse_factor(Parser* parser) {
  */
 static Node* parse_unary(Parser* parser) {
     if (match(parser, TOKEN_NOT) || match(parser, TOKEN_MINUS)) {
-        TokenType op    = parser->previous.type;
+        NsqlTokenType op    = parser->previous.type;
         Node*     right = parse_unary(parser);
 
         Node* unary                  = create_node(NODE_UNARY_EXPR);

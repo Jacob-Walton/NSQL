@@ -1,9 +1,8 @@
-#include "lexer.h"
 #include <ctype.h>
+#include <nsql/lexer.h>
 #include <stdbool.h>
 #include <stdlib.h>
 #include <string.h>
-
 
 /**
  * Initialize the lexer with source code.
@@ -34,7 +33,7 @@ static bool is_at_end(Lexer* lexer) {
  * @param type The token type.
  * @return The created token.
  */
-static Token make_token(Lexer* lexer, TokenType type) {
+static Token make_token(Lexer* lexer, NsqlTokenType type) {
     Token token;
     token.type   = type;
     token.start  = lexer->start;
@@ -155,8 +154,8 @@ static bool is_alnum(char c) {
  * @param type The token type for the keyword.
  * @return The token type if it matches, otherwise TOKEN_IDENTIFIER.
  */
-static TokenType check_keyword(Lexer* lexer, int start, int length, const char* rest,
-                               TokenType type) {
+static NsqlTokenType check_keyword(Lexer* lexer, int start, int length, const char* rest,
+                               NsqlTokenType type) {
     if (lexer->current - lexer->start == start + length &&
         memcmp(lexer->start + start, rest, length) == 0) {
         return type;
@@ -168,7 +167,7 @@ static TokenType check_keyword(Lexer* lexer, int start, int length, const char* 
 /**
  * Scan an identifier or keyword.
  */
-static TokenType identifier_type(Lexer* lexer) {
+static NsqlTokenType identifier_type(Lexer* lexer) {
     switch (lexer->start[0]) {
         case 'A':
             if (lexer->current - lexer->start > 1) {

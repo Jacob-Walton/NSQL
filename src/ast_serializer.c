@@ -1,4 +1,4 @@
-#include "ast_serializer.h"
+#include <nsql/ast_serializer.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -165,6 +165,11 @@ static bool write_string(SerializeBuffer* buf, const char* str) {
     }
 
     size_t len = strlen(str);
+    // Check for truncation
+    if (len > UINT16_MAX) {
+        fprintf(stderr, "Warning: String too long, truncating to %u bytes\n", UINT16_MAX);
+        len = UINT16_MAX;
+    }
     if (!write_uint16(buf, (uint16_t)len))
         return false;
     if (len > 0) {
@@ -690,13 +695,21 @@ SerializedAST* ast_serialize(Node* node, const ExecutionMetadata* metadata) {
     }
 
     // Write header
-    write_uint32(final_buf, AST_MAGIC_NUMBER);  // Magic number
-    write_uint32(final_buf, AST_VERSION);       // Version
-    write_uint32(final_buf, 0);                 // Reserved
-    write_uint32(final_buf, data_buf->size);    // Data size
-    write_uint32(final_buf, data_buf->size);    // Original size (same, no compression)
-    write_uint32(final_buf, checksum);          // Checksum
-    write_uint32(final_buf, 0);                 // Reserved
+    if (!write_uint32(final_buf, AST_MAGIC_NUMBER))  // Magic number
+        return NULL;
+    if (!write_uint32(final_buf, AST_VERSION))       // Version
+        return NULL;
+    if (!write_uint32(final_buf, 0))                 // Reserved
+        return NULL;
+    if (!write_uint32(final_buf, data_buf->size))    // Data size
+        return NULL;
+    // Either use original_size or remove it
+    if (!write_uint32(final_buf, data_buf->size))    // Original size (same, no compression)
+        return NULL;
+    if (!write_uint32(final_buf, checksum))          // Checksum
+        return NULL;
+    if (!write_uint32(final_buf, 0))                 // Reserved
+        return NULL;
 
     // Write data
     write_bytes(final_buf, data_buf->buffer, data_buf->size);
