@@ -3,6 +3,7 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
+#include <stddef.h>
 
 typedef enum {
     TOKEN_ASK,     // ASK
@@ -65,7 +66,7 @@ typedef enum {
 typedef struct {
     TokenType   type;
     const char* start;
-    int         length;
+    size_t         length;
     int         line;
 } Token;
 
