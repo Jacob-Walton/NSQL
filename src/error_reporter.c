@@ -225,12 +225,3 @@ size_t format_errors_json(const ErrorContext* ctx, char* buffer, size_t size) {
     
     return written;
 }
-
-// Fix strcpy warning
-void some_function(char* dest, const char* src, size_t dest_size) {
-#ifdef _MSC_VER
-    strcpy_s(dest, dest_size, src);
-#else
-    strcpy(dest, src);
-#endif
-}
