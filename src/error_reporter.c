@@ -371,7 +371,7 @@ size_t format_errors_json(const ErrorContext* ctx, char* buffer, size_t size) {
         written += escape_written;
 
         // Add closing quote and brace for this error object
-        if (remaining >= 2) {
+        if (remaining >= 3) {
             *buffer++ = '"';
             *buffer++ = '}';
             written += 2;
