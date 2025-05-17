@@ -1,9 +1,9 @@
 #pragma once
 
-#include <stdbool.h>
+#include <nsql/ast_serializer.h>
 #include <nsql/lexer.h>
 #include <nsql/parser.h>
-#include <nsql/ast_serializer.h>
+#include <stdbool.h>
 
 /**
  * Initialize the NSQL query processor.
@@ -12,7 +12,7 @@ bool nsql_processor_init(void);
 
 /**
  * Process an NSQL query
- * 
+ *
  * @param query The NSQL query string.
  * @return true if successful, false otherwise.
  */

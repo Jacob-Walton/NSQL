@@ -6,9 +6,9 @@
 #ifndef NSQL_AST_H
 #define NSQL_AST_H
 
-#include <stdint.h>
-#include <stdbool.h>
 #include <nsql/lexer.h>  // Include lexer.h for NsqlTokenType definition
+#include <stdbool.h>
+#include <stdint.h>
 
 /**
  * Node type enumeration
@@ -54,11 +54,7 @@ typedef enum {
 /**
  * Constraint type enumeration
  */
-typedef enum {
-    CONSTRAINT_REQUIRED,
-    CONSTRAINT_UNIQUE,
-    CONSTRAINT_DEFAULT
-} ConstraintType;
+typedef enum { CONSTRAINT_REQUIRED, CONSTRAINT_UNIQUE, CONSTRAINT_DEFAULT } ConstraintType;
 
 // Forward declare node structure
 typedef struct Node Node;
@@ -160,13 +156,13 @@ typedef union {
     } create_action;
 
     struct {
-        Node*        left;
-        Node*        right;
+        Node*         left;
+        Node*         right;
         NsqlTokenType op;
     } binary_expr;
 
     struct {
-        Node*        operand;
+        Node*         operand;
         NsqlTokenType op;
     } unary_expr;
 
@@ -184,8 +180,8 @@ typedef union {
     } literal;
 
     struct {
-        Node* name;
-        char* type;
+        Node*  name;
+        char*  type;
         Node** constraints;
         int    constraint_count;
     } field_def;

@@ -148,12 +148,13 @@ static bool is_alnum(char c) {
 /**
  * Determines if the current lexeme matches a specific keyword and returns its token type.
  *
- * Compares a substring of the current lexeme to a given keyword. If it matches exactly, returns the specified keyword token type; otherwise, returns TOKEN_IDENTIFIER.
+ * Compares a substring of the current lexeme to a given keyword. If it matches exactly, returns the
+ * specified keyword token type; otherwise, returns TOKEN_IDENTIFIER.
  *
  * @return The keyword token type if matched; otherwise, TOKEN_IDENTIFIER.
  */
 static NsqlTokenType check_keyword(Lexer* lexer, int start, int length, const char* rest,
-                               NsqlTokenType type) {
+                                   NsqlTokenType type) {
     if (lexer->current - lexer->start == start + length &&
         memcmp(lexer->start + start, rest, length) == 0) {
         return type;
@@ -165,9 +166,11 @@ static NsqlTokenType check_keyword(Lexer* lexer, int start, int length, const ch
 /**
  * @brief Determines the token type for an identifier or keyword.
  *
- * Checks the current lexeme in the lexer to see if it matches any reserved SQL-like keywords and returns the corresponding token type. If no keyword matches, returns TOKEN_IDENTIFIER.
+ * Checks the current lexeme in the lexer to see if it matches any reserved SQL-like keywords and
+ * returns the corresponding token type. If no keyword matches, returns TOKEN_IDENTIFIER.
  *
- * @return NsqlTokenType The token type corresponding to the matched keyword, or TOKEN_IDENTIFIER if no keyword is matched.
+ * @return NsqlTokenType The token type corresponding to the matched keyword, or TOKEN_IDENTIFIER if
+ * no keyword is matched.
  */
 static NsqlTokenType identifier_type(Lexer* lexer) {
     switch (lexer->start[0]) {
@@ -451,17 +454,19 @@ Token lexer_next_token(Lexer* lexer) {
  *
  * @param lexer The lexer instance.
  * @param line The line number (1-based).
- * @return Pointer to the beginning of the specified line, or start of source if line is invalid.
+ * @return Pointer to the beginning of the specified line,
+ *         or start of source if line < 1,
+ *         or end of source (terminating '\0' char) if line > total lines.
  */
 const char* lexer_get_line_start(Lexer* lexer, int line) {
     if (!lexer || line < 1) {
         return lexer ? lexer->start : NULL;
     }
-    
+
     // Start from the beginning of the source
-    const char* current = lexer->start;
-    int current_line = 1;
-    
+    const char* current      = lexer->start;
+    int         current_line = 1;
+
     // Find the start of the requested line
     while (current_line < line && *current) {
         // If we find a newline, we've found the end of a line
@@ -474,7 +479,7 @@ const char* lexer_get_line_start(Lexer* lexer, int line) {
         }
         current++;
     }
-    
+
     // If the requested line is greater than available lines,
     // return the start of the last line
     return current;

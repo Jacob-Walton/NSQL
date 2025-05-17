@@ -154,8 +154,10 @@ static bool write_double(SerializeBuffer* buf, double value) {
 /**
  * Writes a string to the buffer, prefixed by its length as a 16-bit unsigned integer.
  *
- * If the string is NULL, writes a zero-length marker. Strings longer than 65535 bytes are truncated.
- *
+ * If
+ * the string is NULL, writes a zero-length marker. Strings longer than 65535 bytes are truncated.
+
+ * *
  * @return true if the string is written successfully, false on failure.
  */
 static bool write_string(SerializeBuffer* buf, const char* str) {
@@ -593,10 +595,10 @@ ExecutionMetadata ast_create_metadata(const Node* node) {
 
     if (ast_is_nosql_query(node)) {
         // NoSQL: favor concurrency, parallelism, and lightness
-        metadata.engine_type    = ENGINE_NOSQL;
-        metadata.hint_flags    |= HINT_PARALLEL_EXEC | HINT_READ_ONLY;
-        metadata.priority       = 128; // Balanced
-        metadata.timeout_ms     = 10000; // Faster timeout for NoSQL
+        metadata.engine_type = ENGINE_NOSQL;
+        metadata.hint_flags |= HINT_PARALLEL_EXEC | HINT_READ_ONLY;
+        metadata.priority   = 128;    // Balanced
+        metadata.timeout_ms = 10000;  // Faster timeout for NoSQL
         // FIND queries: expect many rows, so set estimated_rows high
         if (node->type == NODE_FIND_QUERY) {
             metadata.estimated_rows = 10000;
@@ -629,8 +631,8 @@ ExecutionMetadata ast_create_metadata(const Node* node) {
                 }
                 break;
             case NODE_TELL_QUERY:
-                metadata.priority = 192; // Higher priority for writes
-                metadata.hint_flags = 0; // No read-only
+                metadata.priority       = 192;  // Higher priority for writes
+                metadata.hint_flags     = 0;    // No read-only
                 metadata.estimated_rows = 1;
                 break;
             default:
@@ -642,15 +644,21 @@ ExecutionMetadata ast_create_metadata(const Node* node) {
 }
 
 /**
- * Serializes an AST and its execution metadata into a binary format with integrity verification.
+ * Serializes an AST and its execution metadata into a binary format with integrity
+ * verification.
  *
- * Serializes the provided AST node and optional execution metadata into a contiguous binary buffer,
- * prepends a fixed-size header containing metadata and a CRC32 checksum, and returns a handle to the
- * resulting SerializedAST structure. Returns NULL if serialization fails at any stage.
+ * Serializes the provided AST node and optional execution metadata into a
+ * contiguous binary buffer,
+ * prepends a fixed-size header containing metadata and a CRC32
+ * checksum, and returns a handle to the
+ * resulting SerializedAST structure. Returns NULL if
+ * serialization fails at any stage.
  *
  * @param node Root node of the AST to serialize.
- * @param metadata Optional execution metadata; if NULL, default values are used.
- * @return Pointer to a SerializedAST structure containing the serialized data, or NULL on failure.
+ * @param
+ * metadata Optional execution metadata; if NULL, default values are used.
+ * @return Pointer to a
+ * SerializedAST structure containing the serialized data, or NULL on failure.
  */
 SerializedAST* ast_serialize(Node* node, const ExecutionMetadata* metadata) {
     if (!node)
@@ -701,18 +709,18 @@ SerializedAST* ast_serialize(Node* node, const ExecutionMetadata* metadata) {
     // Write header
     if (!write_uint32(final_buf, AST_MAGIC_NUMBER))  // Magic number
         return NULL;
-    if (!write_uint32(final_buf, AST_VERSION))       // Version
+    if (!write_uint32(final_buf, AST_VERSION))  // Version
         return NULL;
-    if (!write_uint32(final_buf, 0))                 // Reserved
+    if (!write_uint32(final_buf, 0))  // Reserved
         return NULL;
-    if (!write_uint32(final_buf, data_buf->size))    // Data size
+    if (!write_uint32(final_buf, data_buf->size))  // Data size
         return NULL;
     // Either use original_size or remove it
-    if (!write_uint32(final_buf, data_buf->size))    // Original size (same, no compression)
+    if (!write_uint32(final_buf, data_buf->size))  // Original size (same, no compression)
         return NULL;
-    if (!write_uint32(final_buf, checksum))          // Checksum
+    if (!write_uint32(final_buf, checksum))  // Checksum
         return NULL;
-    if (!write_uint32(final_buf, 0))                 // Reserved
+    if (!write_uint32(final_buf, 0))  // Reserved
         return NULL;
 
     // Write data
@@ -780,8 +788,8 @@ SerializedAST* ast_deserialize(const void* data, size_t size) {
     const char* char_data = (const char*)data;
 
     // Parse header (all fields are uint32_t, 4 bytes each)
-    uint32_t magic           = *((uint32_t*)(char_data + 0));
-    uint32_t version         = *((uint32_t*)(char_data + 4));
+    uint32_t magic   = *((uint32_t*)(char_data + 0));
+    uint32_t version = *((uint32_t*)(char_data + 4));
     // uint32_t reserved1    = *((uint32_t*)(char_data + 8));
     uint32_t data_size       = *((uint32_t*)(char_data + 12));
     uint32_t original_size   = *((uint32_t*)(char_data + 16));
@@ -848,7 +856,7 @@ bool ast_extract_metadata(const SerializedAST* ast, ExecutionMetadata* metadata)
 
     const char* char_data = (const char*)ast->data;
     const char* ast_data  = char_data + AST_HEADER_SIZE;
-    uint32_t data_size    = *((uint32_t*)(char_data + 12));
+    uint32_t    data_size = *((uint32_t*)(char_data + 12));
 
     // Find the start of metadata (at the end of the AST data)
     if (data_size < 8) {
@@ -867,7 +875,8 @@ bool ast_extract_metadata(const SerializedAST* ast, ExecutionMetadata* metadata)
     char* target_index = NULL;
     if (str_len > 0) {
         target_index = (char*)malloc(str_len + 1);
-        if (!target_index) return false;
+        if (!target_index)
+            return false;
         memcpy(target_index, ast_data + pos, str_len);
         target_index[str_len] = '\0';
     }

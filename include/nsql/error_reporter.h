@@ -12,12 +12,7 @@
 /**
  * Error severity levels
  */
-typedef enum {
-    ERROR_NONE,
-    ERROR_WARNING,
-    ERROR_ERROR,
-    ERROR_FATAL
-} ErrorSeverity;
+typedef enum { ERROR_NONE, ERROR_WARNING, ERROR_ERROR, ERROR_FATAL } ErrorSeverity;
 
 /**
  * Error source types
@@ -34,12 +29,12 @@ typedef enum {
  * Error report structure
  */
 typedef struct ErrorReport {
-    ErrorSeverity severity;
-    ErrorSource source;
-    int line;
-    int column;
-    const char* message;
-    struct ErrorReport* next; // For linked list of multiple errors
+    ErrorSeverity       severity;
+    ErrorSource         source;
+    int                 line;
+    int                 column;
+    const char*         message;
+    struct ErrorReport* next;  // For linked list of multiple errors
 } ErrorReport;
 
 /**
@@ -48,29 +43,29 @@ typedef struct ErrorReport {
 typedef struct {
     ErrorReport* first_error;
     ErrorReport* last_error;
-    int error_count;
-    int warning_count;
-    bool has_error;
-    bool has_fatal;
+    int          error_count;
+    int          warning_count;
+    bool         has_error;
+    bool         has_fatal;
 } ErrorContext;
 
 /**
  * Initialize error context
- * 
+ *
  * @param ctx The error context to initialize
  */
 void error_context_init(ErrorContext* ctx);
 
 /**
  * Free error context and all reports
- * 
+ *
  * @param ctx The error context to free
  */
 void error_context_free(ErrorContext* ctx);
 
 /**
  * Report an error
- * 
+ *
  * @param ctx The error context
  * @param severity The error severity
  * @param source The error source
@@ -79,12 +74,12 @@ void error_context_free(ErrorContext* ctx);
  * @param message The error message
  * @return true if the report was added successfully
  */
-bool report_error(ErrorContext* ctx, ErrorSeverity severity, ErrorSource source,
-                 int line, int column, const char* message);
+bool report_error(ErrorContext* ctx, ErrorSeverity severity, ErrorSource source, int line,
+                  int column, const char* message);
 
 /**
  * Format all errors in the context into a string
- * 
+ *
  * @param ctx The error context
  * @param buffer The buffer to write to
  * @param size The size of the buffer
@@ -94,7 +89,7 @@ size_t format_errors(const ErrorContext* ctx, char* buffer, size_t size);
 
 /**
  * Format all errors in the context into a string in JSON format
- * 
+ *
  * @param ctx The error context
  * @param buffer The buffer to write to
  * @param size The size of the buffer

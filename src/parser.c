@@ -52,7 +52,8 @@ static const char* token_type_to_op_string(NsqlTokenType type);
 /**
  * @brief Formats all parser errors into a single string.
  *
- * Writes a human-readable summary of all errors encountered during parsing into the provided buffer.
+ * Writes a human-readable summary of all errors encountered during parsing into the provided
+ * buffer.
  *
  * @param buffer Destination buffer for the formatted error string.
  * @param size Size of the destination buffer in bytes.
@@ -78,13 +79,14 @@ size_t parser_format_errors_json(Parser* parser, char* buffer, size_t size) {
 /**
  * @brief Initializes a parser for NSQL input using the provided lexer.
  *
- * Sets up the parser state, resets error tracking, initializes the error context, and advances to the first token.
+ * Sets up the parser state, resets error tracking, initializes the error context, and advances to
+ * the first token.
  */
 void parser_init(Parser* parser, Lexer* lexer) {
-    parser->lexer            = lexer;
-    parser->had_error        = false;
-    parser->panic_mode       = false;
-    
+    parser->lexer      = lexer;
+    parser->had_error  = false;
+    parser->panic_mode = false;
+
     // Initialize error context
     error_context_init(&parser->errors);
 
@@ -95,7 +97,8 @@ void parser_init(Parser* parser, Lexer* lexer) {
 /**
  * Frees resources associated with the parser, including its error context.
  *
- * Call this function to release memory allocated for parser error tracking after parsing is complete.
+ * Call this function to release memory allocated for parser error tracking after parsing is
+ * complete.
  */
 void parser_free(Parser* parser) {
     // Free error context
@@ -145,7 +148,8 @@ static bool match(Parser* parser, NsqlTokenType type) {
 /**
  * @brief Consumes the current token if it matches the expected type, or reports an error.
  *
- * Advances the parser if the current token matches the specified type; otherwise, reports a parsing error with the given message.
+ * Advances the parser if the current token matches the specified type; otherwise, reports a parsing
+ * error with the given message.
  */
 static void consume(Parser* parser, NsqlTokenType type, const char* message) {
     if (parser->current.type == type) {
@@ -167,21 +171,24 @@ static void error_at_current(Parser* parser, const char* message) {
 }
 
 /**
- * Reports a parsing error at the specified token, records it in the parser's error context, and initiates error recovery.
+ * Reports a parsing error at the specified token, records it in the parser's error context, and
+ * initiates error recovery.
  *
- * Sets the parser into panic mode to prevent cascading errors and triggers synchronization to recover from the error state.
+ * Sets the parser into panic mode to prevent cascading errors and triggers synchronization to
+ * recover from the error state.
  */
 static void error_at(Parser* parser, Token* token, const char* message) {
     if (parser->panic_mode)
         return;
     parser->panic_mode = true;
-    parser->had_error = true;
-    
+    parser->had_error  = true;
+
     // Report the error to the error context
-    report_error(&parser->errors, ERROR_ERROR, ERROR_SOURCE_PARSER, 
-                token->line, 
-                token->length > 0 ? (int)(token->start - lexer_get_line_start(parser->lexer, token->line)) : 0,
-                message);
+    report_error(&parser->errors, ERROR_ERROR, ERROR_SOURCE_PARSER, token->line,
+                 token->length > 0
+                     ? (int)(token->start - lexer_get_line_start(parser->lexer, token->line))
+                     : 0,
+                 message);
 
     // Print to stderr for immediate debugging
     fprintf(stderr, "[line %d] Error", token->line);
@@ -272,7 +279,8 @@ static char* copy_token_string(Token* token) {
 /**
  * @brief Returns the string representation of an operator token type.
  *
- * Converts a given NsqlTokenType representing an operator to its corresponding string form (e.g., "+", "AND", "!=").
+ * Converts a given NsqlTokenType representing an operator to its corresponding string form (e.g.,
+ * "+", "AND", "!=").
  *
  * @param type The operator token type.
  * @return The string representation of the operator, or "UNKNOWN" if not recognized.
@@ -1209,7 +1217,8 @@ static Node* parse_expression(Parser* parser) {
 /**
  * @brief Parses a logical OR expression and constructs the corresponding AST node.
  *
- * Parses left-associative logical OR (`OR`) expressions, combining sub-expressions into a binary expression tree.
+ * Parses left-associative logical OR (`OR`) expressions, combining sub-expressions into a binary
+ * expression tree.
  *
  * @return Pointer to the AST node representing the logical OR expression.
  */
@@ -1217,9 +1226,9 @@ static Node* parse_logic_or(Parser* parser) {
     Node* left = parse_logic_and(parser);
 
     while (match(parser, TOKEN_OR)) {
-        NsqlTokenType op               = parser->previous.type;
-        Node*     right            = parse_logic_and(parser);
-        Node*     node             = create_node(NODE_BINARY_EXPR);
+        NsqlTokenType op           = parser->previous.type;
+        Node*         right        = parse_logic_and(parser);
+        Node*         node         = create_node(NODE_BINARY_EXPR);
         node->line                 = parser->previous.line;
         node->as.binary_expr.left  = left;
         node->as.binary_expr.right = right;
@@ -1234,7 +1243,8 @@ static Node* parse_logic_or(Parser* parser) {
 /**
  * @brief Parses a logical AND expression and constructs the corresponding AST node.
  *
- * Parses left-associative logical AND operations, combining equality expressions into a binary expression tree.
+ * Parses left-associative logical AND operations, combining equality expressions into a binary
+ * expression tree.
  *
  * @param parser The parser instance.
  * @return Node* The AST node representing the logical AND expression.
@@ -1243,9 +1253,9 @@ static Node* parse_logic_and(Parser* parser) {
     Node* left = parse_equality(parser);
 
     while (match(parser, TOKEN_AND)) {
-        NsqlTokenType op               = parser->previous.type;
-        Node*     right            = parse_equality(parser);
-        Node*     node             = create_node(NODE_BINARY_EXPR);
+        NsqlTokenType op           = parser->previous.type;
+        Node*         right        = parse_equality(parser);
+        Node*         node         = create_node(NODE_BINARY_EXPR);
         node->line                 = parser->previous.line;
         node->as.binary_expr.left  = left;
         node->as.binary_expr.right = right;
@@ -1260,7 +1270,8 @@ static Node* parse_logic_and(Parser* parser) {
 /**
  * Parses an equality or inequality expression and constructs the corresponding AST node.
  *
- * Supports chaining of equality (`=`) and inequality (`!=`) operators, producing a left-associative binary expression tree.
+ * Supports chaining of equality (`=`) and inequality (`!=`) operators, producing a left-associative
+ * binary expression tree.
  *
  * @return The root AST node representing the parsed equality expression.
  */
@@ -1268,9 +1279,9 @@ static Node* parse_equality(Parser* parser) {
     Node* left = parse_comparison(parser);
 
     while (match(parser, TOKEN_EQUAL) || match(parser, TOKEN_NEQ)) {
-        NsqlTokenType op               = parser->previous.type;
-        Node*     right            = parse_comparison(parser);
-        Node*     node             = create_node(NODE_BINARY_EXPR);
+        NsqlTokenType op           = parser->previous.type;
+        Node*         right        = parse_comparison(parser);
+        Node*         node         = create_node(NODE_BINARY_EXPR);
         node->line                 = parser->previous.line;
         node->as.binary_expr.left  = left;
         node->as.binary_expr.right = right;
@@ -1285,16 +1296,17 @@ static Node* parse_equality(Parser* parser) {
 /**
  * Parses a comparison expression with relational operators (<, <=, >, >=).
  *
- * @return An AST node representing the parsed comparison expression, or a simpler term if no comparison operator is present.
+ * @return An AST node representing the parsed comparison expression, or a simpler term if no
+ * comparison operator is present.
  */
 static Node* parse_comparison(Parser* parser) {
     Node* left = parse_term(parser);
 
     while (match(parser, TOKEN_LT) || match(parser, TOKEN_LTE) || match(parser, TOKEN_GT) ||
            match(parser, TOKEN_GTE)) {
-        NsqlTokenType op               = parser->previous.type;
-        Node*     right            = parse_term(parser);
-        Node*     node             = create_node(NODE_BINARY_EXPR);
+        NsqlTokenType op           = parser->previous.type;
+        Node*         right        = parse_term(parser);
+        Node*         node         = create_node(NODE_BINARY_EXPR);
         node->line                 = parser->previous.line;
         node->as.binary_expr.left  = left;
         node->as.binary_expr.right = right;
@@ -1309,7 +1321,8 @@ static Node* parse_comparison(Parser* parser) {
 /**
  * @brief Parses an addition or subtraction expression.
  *
- * Parses a term consisting of one or more factors combined with '+' or '-' operators, constructing a left-associative binary expression AST node.
+ * Parses a term consisting of one or more factors combined with '+' or '-' operators, constructing
+ * a left-associative binary expression AST node.
  *
  * @param parser Parser instance.
  * @return Node* AST node representing the parsed term expression.
@@ -1318,9 +1331,9 @@ static Node* parse_term(Parser* parser) {
     Node* left = parse_factor(parser);
 
     while (match(parser, TOKEN_PLUS) || match(parser, TOKEN_MINUS)) {
-        NsqlTokenType op               = parser->previous.type;
-        Node*     right            = parse_factor(parser);
-        Node*     node             = create_node(NODE_BINARY_EXPR);
+        NsqlTokenType op           = parser->previous.type;
+        Node*         right        = parse_factor(parser);
+        Node*         node         = create_node(NODE_BINARY_EXPR);
         node->line                 = parser->previous.line;
         node->as.binary_expr.left  = left;
         node->as.binary_expr.right = right;
@@ -1335,7 +1348,8 @@ static Node* parse_term(Parser* parser) {
 /**
  * @brief Parses a factor expression involving multiplication, division, or modulo.
  *
- * Parses left-associative binary expressions with '*', '/', or '%' operators, building the corresponding AST subtree.
+ * Parses left-associative binary expressions with '*', '/', or '%' operators, building the
+ * corresponding AST subtree.
  *
  * @param parser The parser instance.
  * @return Node* The AST node representing the parsed factor expression.
@@ -1346,7 +1360,7 @@ static Node* parse_factor(Parser* parser) {
     while (match(parser, TOKEN_STAR) || match(parser, TOKEN_SLASH) ||
            match(parser, TOKEN_PERCENT)) {
         NsqlTokenType op    = parser->previous.type;
-        Node*     right = parse_unary(parser);
+        Node*         right = parse_unary(parser);
 
         Node* binary                 = create_node(NODE_BINARY_EXPR);
         binary->line                 = left->line;
@@ -1362,14 +1376,15 @@ static Node* parse_factor(Parser* parser) {
 /**
  * Parses a unary expression, handling logical NOT and negation operators.
  *
- * Returns an AST node representing either a unary operation or a primary expression if no unary operator is present.
+ * Returns an AST node representing either a unary operation or a primary expression if no unary
+ * operator is present.
  *
  * @return Node* The AST node for the parsed unary expression.
  */
 static Node* parse_unary(Parser* parser) {
     if (match(parser, TOKEN_NOT) || match(parser, TOKEN_MINUS)) {
         NsqlTokenType op    = parser->previous.type;
-        Node*     right = parse_unary(parser);
+        Node*         right = parse_unary(parser);
 
         Node* unary                  = create_node(NODE_UNARY_EXPR);
         unary->line                  = parser->previous.line;
@@ -1669,7 +1684,7 @@ void free_node(Node* node) {
         case NODE_ERROR:
             free(node->as.error.message);
             break;
-        
+
         case NODE_PROGRAM:
             for (int i = 0; i < node->as.program.count; i++) {
                 free_node(node->as.program.statements[i]);
@@ -2065,7 +2080,7 @@ void print_ast(Node* node, int indent) {
             printf("ERROR: %s\n", node->as.error.message);
             break;
 
-            case NODE_PROGRAM:
+        case NODE_PROGRAM:
             printf("PROGRAM (%d statements):\n", node->as.program.count);
             for (int i = 0; i < node->as.program.count; i++) {
                 print_indent(indent + 1);
@@ -2073,7 +2088,7 @@ void print_ast(Node* node, int indent) {
                 print_ast(node->as.program.statements[i], indent + 2);
             }
             break;
-            
+
         default:
             printf("UNKNOWN NODE TYPE: %d\n", node->type);
             break;
@@ -2082,49 +2097,49 @@ void print_ast(Node* node, int indent) {
 
 /**
  * Parse a complete program, which may contain multiple queries
- * 
+ *
  * @param parser The parser instance.
  * @return The AST node representing the program.
  */
 /**
  * Parse a complete program, which may contain multiple queries.
- * 
+ *
  * @param parser The parser instance.
  * @return The AST node representing the program.
  */
 Node* parse_program(Parser* parser) {
     Node* program = create_node(NODE_PROGRAM);
     program->line = parser->current.line;
-    
+
     // Allocate initial space for statements
-    int capacity = 4;
+    int capacity                   = 4;
     program->as.program.statements = (Node**)malloc(capacity * sizeof(Node*));
     if (program->as.program.statements == NULL) {
         fprintf(stderr, "Error: Out of memory\n");
         exit(EXIT_FAILURE);
     }
-    
+
     program->as.program.count = 0;
-    
+
     // Parse statements until EOF
     while (!check(parser, TOKEN_EOF)) {
         // Parse a query
         Node* stmt = parse_query(parser);
-        
+
         // Add the statement to the program if parsing succeeded
         if (stmt != NULL && !parser->had_error) {
             if (program->as.program.count >= capacity) {
                 capacity *= 2;
-                program->as.program.statements = 
+                program->as.program.statements =
                     (Node**)realloc(program->as.program.statements, capacity * sizeof(Node*));
                 if (program->as.program.statements == NULL) {
                     fprintf(stderr, "Error: Out of memory\n");
                     exit(EXIT_FAILURE);
                 }
             }
-            
+
             program->as.program.statements[program->as.program.count++] = stmt;
-            
+
             // Look for a PLEASE or ; statement ender
             if (!check(parser, TOKEN_EOF) && !match(parser, TOKEN_TERMINATOR)) {
                 error_at_current(parser, "Expected 'PLEASE'  or ';' after statement");
@@ -2139,6 +2154,6 @@ Node* parse_program(Parser* parser) {
             }
         }
     }
-    
+
     return program;
 }

@@ -4,19 +4,19 @@
 extern "C" {
 #endif
 
-#include <nsql/lexer.h>
 #include <nsql/ast.h>
 #include <nsql/error_reporter.h>
+#include <nsql/lexer.h>
 #include <stdbool.h>
 
 // Parser state
 typedef struct {
-    Lexer* lexer;         // Lexer to get tokens from
-    Token current;        // Current token
-    Token previous;       // Previous token
-    bool had_error;       // Did we encounter an error during compilation?
-    bool panic_mode;      // Are we in panic mode?
-    ErrorContext errors;  // Error context for reporting
+    Lexer*       lexer;       // Lexer to get tokens from
+    Token        current;     // Current token
+    Token        previous;    // Previous token
+    bool         had_error;   // Did we encounter an error during compilation?
+    bool         panic_mode;  // Are we in panic mode?
+    ErrorContext errors;      // Error context for reporting
 } Parser;
 
 // Initialize the parser with a lexer

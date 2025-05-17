@@ -64,10 +64,10 @@ typedef enum {
 } NsqlTokenType;
 
 typedef struct {
-    NsqlTokenType   type;
-    const char* start;
-    size_t      length;
-    int         line;
+    NsqlTokenType type;
+    const char*   start;
+    size_t        length;
+    int           line;
 } Token;
 
 typedef struct {
@@ -76,8 +76,8 @@ typedef struct {
     int         line;
 } Lexer;
 
-void  lexer_init(Lexer* lexer, const char* source);
-Token lexer_next_token(Lexer* lexer);
+void        lexer_init(Lexer* lexer, const char* source);
+Token       lexer_next_token(Lexer* lexer);
 const char* lexer_get_line_start(Lexer* lexer, int line);
 
 #ifdef __cplusplus
