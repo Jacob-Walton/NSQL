@@ -8,7 +8,18 @@
 #include <stdlib.h>
 #include <string.h>
 
-// Helper function to write to appropriate output
+/**
+ * @brief Writes a string to the output destination specified in the AstPrinter.
+ *
+ * Writes the given string to a file or buffer, depending on the printer's output type.
+ * For file output, writes using fputs. For buffer output, copies the string into the buffer,
+ * ensuring null termination and preventing overflow. Returns false on write failure or if
+ * called with an unsupported output type (such as callback).
+ *
+ * @param printer Pointer to the AstPrinter specifying the output destination.
+ * @param str Null-terminated string to write. If NULL, nothing is written and the function returns true.
+ * @return true if the write succeeds or nothing is written; false on failure or unsupported output type.
+ */
 static bool printer_write(AstPrinter* printer, const char* str) {
     if (!str) return true; // Nothing to write
     
@@ -47,7 +58,14 @@ static bool printer_write(AstPrinter* printer, const char* str) {
     return true;
 }
 
-// Helper function to write indentation
+/**
+ * @brief Writes indentation spaces to the output based on depth and printer settings.
+ *
+ * Generates and writes a string of spaces corresponding to the current indentation level if pretty printing is enabled. Indentation is capped to prevent buffer overflow.
+ *
+ * @param depth The current depth in the AST, used to calculate indentation.
+ * @return true on successful write; false if writing fails.
+ */
 static bool printer_write_indent(AstPrinter* printer, int depth) {
     if (!printer->pretty_print) return true;
     
@@ -69,7 +87,15 @@ static bool printer_write_indent(AstPrinter* printer, int depth) {
 // Forward declaration of recursive printer function
 static bool print_node_recursive(AstPrinter* printer, const Node* node, int depth);
 
-// Helper for text format of binary expression
+/**
+ * @brief Prints a binary expression node in a human-readable text format.
+ *
+ * Outputs the operator and recursively prints the left and right operands with increased indentation.
+ *
+ * @param node The binary expression node to print.
+ * @param depth The current indentation depth for pretty printing.
+ * @return true if printing succeeds for the node and its children, false otherwise.
+ */
 static bool print_binary_expr_text(AstPrinter* printer, const Node* node, int depth) {
     printer_write(printer, "BINARY EXPRESSION:\n");
     printer_write_indent(printer, depth + 1);
@@ -112,7 +138,16 @@ static bool print_binary_expr_text(AstPrinter* printer, const Node* node, int de
     return true;
 }
 
-// Helper for JSON format of a node
+/**
+ * @brief Prints an AST node in JSON format to the configured output.
+ *
+ * Outputs the node's type, optional line number, and node-specific fields such as identifier names, literal values, or binary operators. Indentation is applied if pretty printing is enabled. Returns false if writing fails at any point.
+ *
+ * @param printer The AST printer configured for output.
+ * @param node The AST node to print; prints "null" if the node is NULL.
+ * @param depth The current depth in the AST, used for indentation when pretty printing.
+ * @return true if the node was printed successfully; false on write failure.
+ */
 static bool print_node_json(AstPrinter* printer, const Node* node, int depth) {
     // Use depth parameter to avoid warning
     if (printer->pretty_print && depth > 0) {
@@ -230,7 +265,16 @@ static bool print_node_json(AstPrinter* printer, const Node* node, int depth) {
     return true;
 }
 
-// Main recursive function to print a node based on format
+/**
+ * @brief Recursively prints an AST node in the selected format.
+ *
+ * Prints the given AST node and its children using the format specified in the printer configuration (text or JSON). Handles indentation and pretty-printing as configured. Returns false if printing fails or if the format is not supported.
+ *
+ * @param printer Configured AST printer specifying output format and destination.
+ * @param node AST node to print; prints "NULL" if node is null.
+ * @param depth Current depth in the AST, used for indentation.
+ * @return true if the node and its children were printed successfully; false on failure or unsupported format.
+ */
 static bool print_node_recursive(AstPrinter* printer, const Node* node, int depth) {
     if (!node) {
         printer_write_indent(printer, depth);
@@ -298,7 +342,15 @@ static bool print_node_recursive(AstPrinter* printer, const Node* node, int dept
     return false;
 }
 
-// Handle callback-based printing separately
+/**
+ * @brief Traverses the AST in depth-first order and invokes a callback for each node.
+ *
+ * For each node in the AST, calls the user-provided callback function with the node and its depth.
+ * Traversal is performed using an explicit stack to avoid recursion. Currently, only binary expression
+ * nodes have their children pushed for traversal; support for other node types can be added as needed.
+ *
+ * @return true if traversal completes successfully; false if memory allocation fails or the printer is misconfigured.
+ */
 static bool print_node_callback(AstPrinter* printer, const Node* node) {
     if (printer->type != AST_OUTPUT_CALLBACK || !printer->output.callback.fn) {
         return false;
@@ -365,6 +417,16 @@ static bool print_node_callback(AstPrinter* printer, const Node* node) {
     return true;
 }
 
+/**
+ * @brief Initializes an AstPrinter for file output with the specified format.
+ *
+ * Configures the printer to write AST output to a given file stream, enabling pretty printing and line numbers by default.
+ *
+ * @param printer Pointer to the AstPrinter to initialize.
+ * @param format Output format for the AST (e.g., text, JSON).
+ * @param file File stream to which the AST will be written.
+ * @return true if initialization succeeds; false if printer or file is NULL.
+ */
 bool ast_printer_init_file(AstPrinter* printer, AstOutputFormat format, FILE* file) {
     if (!printer || !file) return false;
     
@@ -379,6 +441,19 @@ bool ast_printer_init_file(AstPrinter* printer, AstOutputFormat format, FILE* fi
     return true;
 }
 
+/**
+ * @brief Initializes an AstPrinter for output to a character buffer.
+ *
+ * Configures the printer to write AST output in the specified format to a provided buffer,
+ * enabling pretty printing and line numbers by default. The buffer is null-terminated and
+ * its size is respected to prevent overflow.
+ *
+ * @param printer Pointer to the AstPrinter to initialize.
+ * @param format Output format for the AST (e.g., text, JSON).
+ * @param buffer Destination buffer for output.
+ * @param size Size of the buffer in bytes.
+ * @return true if initialization succeeds; false if arguments are invalid.
+ */
 bool ast_printer_init_buffer(AstPrinter* printer, AstOutputFormat format, char* buffer, size_t size) {
     if (!printer || !buffer || size == 0) return false;
     
@@ -398,6 +473,17 @@ bool ast_printer_init_buffer(AstPrinter* printer, AstOutputFormat format, char* 
     return true;
 }
 
+/**
+ * @brief Initializes an AstPrinter for callback-based output.
+ *
+ * Configures the printer to traverse the AST and invoke a user-provided callback function for each node, using the specified output format.
+ *
+ * @param printer Pointer to the AstPrinter to initialize.
+ * @param format Output format to use when printing nodes.
+ * @param callback Function to call for each node during traversal.
+ * @param user_data User-defined data passed to the callback function.
+ * @return true if initialization succeeds; false if printer or callback is NULL.
+ */
 bool ast_printer_init_callback(AstPrinter* printer, AstOutputFormat format, 
                               AstPrintCallback callback, void* user_data) {
     if (!printer || !callback) return false;
@@ -414,6 +500,16 @@ bool ast_printer_init_callback(AstPrinter* printer, AstOutputFormat format,
     return true;
 }
 
+/**
+ * @brief Prints an AST node using the specified printer configuration.
+ *
+ * Selects the appropriate output method (file, buffer, or callback) and format (text, JSON, etc.) as configured in the printer.
+ * Returns false if the printer is invalid or if printing fails.
+ *
+ * @param printer Configured AST printer specifying output type and format.
+ * @param node Root AST node to print.
+ * @return true if printing succeeds; false otherwise.
+ */
 bool ast_printer_print(AstPrinter* printer, const Node* node) {
     if (!printer) return false;
     
@@ -425,11 +521,24 @@ bool ast_printer_print(AstPrinter* printer, const Node* node) {
     }
 }
 
+/**
+ * @brief Releases resources associated with an AstPrinter.
+ *
+ * Currently a placeholder; does not perform any operations.
+ */
 void ast_printer_free(AstPrinter* printer) {
     // Nothing to free for now, but implemented for future expansion
     (void)printer;
 }
 
+/**
+ * @brief Returns the number of bytes written to the output buffer.
+ *
+ * If the printer is not configured for buffer output or is invalid, returns 0.
+ *
+ * @param printer Pointer to the AstPrinter instance.
+ * @return Number of bytes written to the buffer, or 0 if not applicable.
+ */
 size_t ast_printer_get_written(const AstPrinter* printer) {
     if (!printer || printer->type != AST_OUTPUT_BUFFER) {
         return 0;

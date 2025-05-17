@@ -152,11 +152,11 @@ static bool write_double(SerializeBuffer* buf, double value) {
 }
 
 /**
- * Write a string to the buffer.
+ * Writes a string to the buffer, prefixed by its length as a 16-bit unsigned integer.
  *
- * @param buf The buffer to write to.
- * @param str The string to write.
- * @return true if successful, false on failure.
+ * If the string is NULL, writes a zero-length marker. Strings longer than 65535 bytes are truncated.
+ *
+ * @return true if the string is written successfully, false on failure.
  */
 static bool write_string(SerializeBuffer* buf, const char* str) {
     if (!str) {
@@ -642,11 +642,15 @@ ExecutionMetadata ast_create_metadata(const Node* node) {
 }
 
 /**
- * Main serialization function.
+ * Serializes an AST and its execution metadata into a binary format with integrity verification.
  *
- * @param node The root node of the AST.
- * @param metadata The execution metadata (NULL for default).
- * @return SerializedAST handle or NULL on failure.
+ * Serializes the provided AST node and optional execution metadata into a contiguous binary buffer,
+ * prepends a fixed-size header containing metadata and a CRC32 checksum, and returns a handle to the
+ * resulting SerializedAST structure. Returns NULL if serialization fails at any stage.
+ *
+ * @param node Root node of the AST to serialize.
+ * @param metadata Optional execution metadata; if NULL, default values are used.
+ * @return Pointer to a SerializedAST structure containing the serialized data, or NULL on failure.
  */
 SerializedAST* ast_serialize(Node* node, const ExecutionMetadata* metadata) {
     if (!node)
