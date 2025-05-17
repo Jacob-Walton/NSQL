@@ -7,7 +7,7 @@ extern "C" {
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
-#include "parser.h"  // For Node type def
+#include "ast.h"  // For Node
 
 // Format Constants
 #define AST_HEADER_SIZE 28
@@ -22,8 +22,8 @@ extern "C" {
 // Execution hint flags
 #define HINT_PARALLEL_EXEC 0x0001  // Query can be parallelized
 #define HINT_INDEX_SCAN 0x0002     // Use an index scan
-#define HINT_FULL_SCAN 0x0003      // Use full table scan
-#define HINT_CACHE_RESULT 0x0004   // Cache query result
+#define HINT_FULL_SCAN 0x0004      // Use full table scan
+#define HINT_CACHE_RESULT 0x0008   // Cache query result
 #define HINT_PRIORITY_HIGH 0x0010  // High priority execution
 #define HINT_PRIORITY_LOW 0x0020   // Low priority execution
 #define HINT_READ_ONLY 0x0040      // Read-only query

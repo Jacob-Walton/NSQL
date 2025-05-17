@@ -445,3 +445,37 @@ Token lexer_next_token(Lexer* lexer) {
 
     return error_token(lexer, "Unexpected character.");
 }
+
+/**
+ * Get the starting position of a specific line in the source code.
+ *
+ * @param lexer The lexer instance.
+ * @param line The line number (1-based).
+ * @return Pointer to the beginning of the specified line, or start of source if line is invalid.
+ */
+const char* lexer_get_line_start(Lexer* lexer, int line) {
+    if (!lexer || line < 1) {
+        return lexer ? lexer->start : NULL;
+    }
+    
+    // Start from the beginning of the source
+    const char* current = lexer->start;
+    int current_line = 1;
+    
+    // Find the start of the requested line
+    while (current_line < line && *current) {
+        // If we find a newline, we've found the end of a line
+        if (*current == '\n') {
+            current_line++;
+            if (current_line == line) {
+                // Return the character after the newline
+                return current + 1;
+            }
+        }
+        current++;
+    }
+    
+    // If the requested line is greater than available lines,
+    // return the start of the last line
+    return current;
+}

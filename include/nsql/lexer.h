@@ -3,6 +3,7 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
+#include <stddef.h>
 
 typedef enum {
     TOKEN_ASK,     // ASK
@@ -65,7 +66,7 @@ typedef enum {
 typedef struct {
     NsqlTokenType   type;
     const char* start;
-    int         length;
+    size_t      length;
     int         line;
 } Token;
 
@@ -77,6 +78,7 @@ typedef struct {
 
 void  lexer_init(Lexer* lexer, const char* source);
 Token lexer_next_token(Lexer* lexer);
+const char* lexer_get_line_start(Lexer* lexer, int line);
 
 #ifdef __cplusplus
 }

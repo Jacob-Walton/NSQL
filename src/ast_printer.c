@@ -384,7 +384,16 @@ static bool print_node_callback(AstPrinter* printer, const Node* node) {
         
         // Call the callback
         if (current) {
-            printer->output.callback.fn(current, depth, printer->output.callback.user_data);
+            // Check the return value of the callback - if false, stop traversal
+            if (!printer->output.callback.fn(current, depth, printer->output.callback.user_data)) {
+                // Free any remaining stack items
+                while (stack) {
+                    item = stack;
+                    stack = stack->next;
+                    free(item);
+                }
+                return false; // Propagate the return value to caller
+            }
             
             // Push children to stack (in reverse order so they get processed in the right order)
             // This would need to be customized for each node type

@@ -269,9 +269,12 @@ size_t format_errors_json(const ErrorContext* ctx, char* buffer, size_t size) {
     }
     
     // Close JSON array
-    if (remaining >= 2) {
-        strcpy(buffer, "]}");
+    if (remaining >= 3) {
+        memcpy(buffer, "]}", 2);
+        buffer[2] = '\0';
         written += 2;
+        buffer += 2;
+        remaining -= 2;
     }
     
     // Ensure null termination

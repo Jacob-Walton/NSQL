@@ -179,7 +179,8 @@ static void error_at(Parser* parser, Token* token, const char* message) {
     
     // Report the error to the error context
     report_error(&parser->errors, ERROR_ERROR, ERROR_SOURCE_PARSER, 
-                token->line, token->length > 0 ? token->start - parser->lexer->start : 0,
+                token->line, 
+                token->length > 0 ? (int)(token->start - lexer_get_line_start(parser->lexer, token->line)) : 0,
                 message);
 
     // Print to stderr for immediate debugging
@@ -190,7 +191,7 @@ static void error_at(Parser* parser, Token* token, const char* message) {
     } else if (token->type == TOKEN_ERROR) {
         // Nothing
     } else {
-        fprintf(stderr, " at '%.*s'", token->length, token->start);
+        fprintf(stderr, " at '%.*s'", (int)token->length, token->start);
     }
 
     fprintf(stderr, ": %s\n", message);

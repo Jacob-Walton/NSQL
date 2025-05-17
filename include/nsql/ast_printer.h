@@ -35,8 +35,9 @@ typedef enum {
  * @param node The node being processed
  * @param depth The depth of the node in the tree
  * @param user_data User data passed to the printer
+ * @return true to continue traversal, false to stop
  */
-typedef void (*AstPrintCallback)(const Node* node, int depth, void* user_data);
+typedef bool (*AstPrintCallback)(const Node* node, int depth, void* user_data);
 
 /**
  * AST printer configuration
