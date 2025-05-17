@@ -1,9 +1,8 @@
-#include "lexer.h"
 #include <ctype.h>
+#include <nsql/lexer.h>
 #include <stdbool.h>
 #include <stdlib.h>
 #include <string.h>
-
 
 /**
  * Initialize the lexer with source code.
@@ -28,13 +27,14 @@ static bool is_at_end(Lexer* lexer) {
 }
 
 /**
- * Create a token with the current lexeme.
+ * Creates a token representing the current lexeme in the source.
  *
- * @param lexer The lexer instance.
- * @param type The token type.
- * @return The created token.
+ * The token includes its type, starting position, length, and line number.
+ *
+ * @param type The type to assign to the created token.
+ * @return A token corresponding to the current lexeme.
  */
-static Token make_token(Lexer* lexer, TokenType type) {
+static Token make_token(Lexer* lexer, NsqlTokenType type) {
     Token token;
     token.type   = type;
     token.start  = lexer->start;
@@ -146,17 +146,15 @@ static bool is_alnum(char c) {
 }
 
 /**
- * Check if the current lexeme matches a keyword.
+ * Determines if the current lexeme matches a specific keyword and returns its token type.
  *
- * @param lexer The lexer instance.
- * @param start The starting index of the keyword.
- * @param length The length of the keyword.
- * @param rest The remaining characters after the keyword.
- * @param type The token type for the keyword.
- * @return The token type if it matches, otherwise TOKEN_IDENTIFIER.
+ * Compares a substring of the current lexeme to a given keyword. If it matches exactly, returns the
+ * specified keyword token type; otherwise, returns TOKEN_IDENTIFIER.
+ *
+ * @return The keyword token type if matched; otherwise, TOKEN_IDENTIFIER.
  */
-static TokenType check_keyword(Lexer* lexer, int start, int length, const char* rest,
-                               TokenType type) {
+static NsqlTokenType check_keyword(Lexer* lexer, int start, int length, const char* rest,
+                                   NsqlTokenType type) {
     if (lexer->current - lexer->start == start + length &&
         memcmp(lexer->start + start, rest, length) == 0) {
         return type;
@@ -166,9 +164,15 @@ static TokenType check_keyword(Lexer* lexer, int start, int length, const char* 
 }
 
 /**
- * Scan an identifier or keyword.
+ * @brief Determines the token type for an identifier or keyword.
+ *
+ * Checks the current lexeme in the lexer to see if it matches any reserved SQL-like keywords and
+ * returns the corresponding token type. If no keyword matches, returns TOKEN_IDENTIFIER.
+ *
+ * @return NsqlTokenType The token type corresponding to the matched keyword, or TOKEN_IDENTIFIER if
+ * no keyword is matched.
  */
-static TokenType identifier_type(Lexer* lexer) {
+static NsqlTokenType identifier_type(Lexer* lexer) {
     switch (lexer->start[0]) {
         case 'A':
             if (lexer->current - lexer->start > 1) {
@@ -443,4 +447,40 @@ Token lexer_next_token(Lexer* lexer) {
     }
 
     return error_token(lexer, "Unexpected character.");
+}
+
+/**
+ * Get the starting position of a specific line in the source code.
+ *
+ * @param lexer The lexer instance.
+ * @param line The line number (1-based).
+ * @return Pointer to the beginning of the specified line,
+ *         or start of source if line < 1,
+ *         or end of source (terminating '\0' char) if line > total lines.
+ */
+const char* lexer_get_line_start(Lexer* lexer, int line) {
+    if (!lexer || line < 1) {
+        return lexer ? lexer->start : NULL;
+    }
+
+    // Start from the beginning of the source
+    const char* current      = lexer->start;
+    int         current_line = 1;
+
+    // Find the start of the requested line
+    while (current_line < line && *current) {
+        // If we find a newline, we've found the end of a line
+        if (*current == '\n') {
+            current_line++;
+            if (current_line == line) {
+                // Return the character after the newline
+                return current + 1;
+            }
+        }
+        current++;
+    }
+
+    // If the requested line is greater than available lines,
+    // return the start of the last line
+    return current;
 }
