@@ -223,6 +223,81 @@ size_t format_errors(const ErrorContext* ctx, char* buffer, size_t size) {
 }
 
 /**
+ * @brief Appends a JSON-escaped string to a buffer.
+ *
+ * Escapes special characters in JSON strings such as quotes, backslashes, and control characters.
+ * Updates the buffer pointer and remaining size accordingly.
+ *
+ * @param buffer Pointer to the buffer pointer which will be updated
+ * @param remaining Pointer to the remaining size which will be updated
+ * @param str The string to escape and append
+ * @return size_t Number of characters written
+ */
+static size_t append_json_escaped(char** buffer, size_t* remaining, const char* str) {
+    if (!buffer || !*buffer || !remaining || !str || *remaining == 0)
+        return 0;
+    
+    size_t written = 0;
+    char* dst = *buffer;
+    
+    while (*str && *remaining > 1) {
+        char c = *str++;
+        
+        // Escape special characters
+        if (c == '\"' || c == '\\') {
+            if (*remaining < 3) break; // Need space for escape sequence + null
+            
+            *dst++ = '\\';
+            *dst++ = c;
+            written += 2;
+            *remaining -= 2;
+        }
+        // Escape control characters
+        else if (c < 32) {
+            const char* escape = NULL; // Initialize to NULL to prevent uninitialized use
+            switch (c) {
+                case '\b': escape = "\\b"; break;
+                case '\f': escape = "\\f"; break;
+                case '\n': escape = "\\n"; break;
+                case '\r': escape = "\\r"; break;
+                case '\t': escape = "\\t"; break;
+                default: {
+                    // For other control chars, use \uXXXX format
+                    if (*remaining < 7) break; // Need space for \uXXXX + null
+                    *dst++ = '\\';
+                    *dst++ = 'u';
+                    *dst++ = '0';
+                    *dst++ = '0';
+                    *dst++ = "0123456789ABCDEF"[(c >> 4) & 0xF];
+                    *dst++ = "0123456789ABCDEF"[c & 0xF];
+                    written += 6;
+                    *remaining -= 6;
+                    continue;
+                }
+            }
+            
+            // Only use escape if it was set
+            if (escape != NULL && *remaining >= 3) {
+                *dst++ = escape[0];
+                *dst++ = escape[1];
+                written += 2;
+                *remaining -= 2;
+            }
+        }
+        // Normal character
+        else {
+            *dst++ = c;
+            written += 1;
+            *remaining -= 1;
+        }
+    }
+    
+    *dst = '\0';
+    *buffer = dst;
+    return written;
+}
+
+/**
  * @brief Formats all errors in the context as a JSON string.
  *
  * Writes a JSON object containing a summary of error and warning counts and an array of detailed
@@ -246,34 +321,6 @@ size_t format_errors_json(const ErrorContext* ctx, char* buffer, size_t size) {
     int chars =
         snprintf(buffer, remaining, "{\"summary\":{\"errors\":%d,\"warnings\":%d},\"details\":[",
                  ctx->error_count, ctx->warning_count);
-
-    /* Append escaped message */
-    for (const char* p = current->message; *p && remaining > 0; ++p) {
-        char esc[3] = {0};
-        switch (*p) {
-            case '\"':
-                strcpy(esc, "\\\"");
-                break;
-            case '\\':
-                strcpy(esc, "\\\\");
-                break;
-            case '\n':
-                strcpy(esc, "\\n");
-                break;
-            case '\r':
-                strcpy(esc, "\\r");
-                break;
-            case '\t':
-                strcpy(esc, "\\t");
-                break;
-            default:
-                esc[0] = *p;
-                esc[1] = '\0';
-        }
-    }
-
-    /* close the JSON object */
-    chars = snprintf(buffer, remaining, "\"}");
 
     if (chars < 0)
         return 0;
@@ -301,13 +348,9 @@ size_t format_errors_json(const ErrorContext* ctx, char* buffer, size_t size) {
         }
         first = false;
 
-        // Convert message to JSON-safe string
-        // This is a simplified version - a real implementation would need to properly escape
-        // special characters like quotes, newlines, etc.
-
         chars = snprintf(
             buffer, remaining,
-            "\"severity\":\"%s\",\"source\":\"%s\",\"line\":%d,\"column\":%d,\"message\":\"",
+            "{\"severity\":\"%s\",\"source\":\"%s\",\"line\":%d,\"column\":%d,\"message\":\"",
             get_severity_name(current->severity), get_source_name(current->source), current->line,
             current->column);
 
@@ -322,6 +365,19 @@ size_t format_errors_json(const ErrorContext* ctx, char* buffer, size_t size) {
         written += (size_t)chars;
         buffer += chars;
         remaining -= (size_t)chars;
+
+        // Escape the message
+        size_t escape_written = append_json_escaped(&buffer, &remaining, current->message);
+        written += escape_written;
+
+        // Add closing quote and brace for this error object
+        if (remaining >= 2) {
+            *buffer++ = '"';
+            *buffer++ = '}';
+            written += 2;
+            remaining -= 2;
+        }
+
         current = current->next;
     }
 
@@ -330,12 +386,7 @@ size_t format_errors_json(const ErrorContext* ctx, char* buffer, size_t size) {
         memcpy(buffer, "]}", 2);
         buffer[2] = '\0';
         written += 2;
-        buffer += 2;
-        remaining -= 2;
-    }
-
-    // Ensure null termination
-    if (remaining > 0) {
+    } else if (remaining > 0) {
         buffer[0] = '\0';
     }
 
