@@ -27,11 +27,12 @@ static bool is_at_end(Lexer* lexer) {
 }
 
 /**
- * Create a token with the current lexeme.
+ * Creates a token representing the current lexeme in the source.
  *
- * @param lexer The lexer instance.
- * @param type The token type.
- * @return The created token.
+ * The token includes its type, starting position, length, and line number.
+ *
+ * @param type The type to assign to the created token.
+ * @return A token corresponding to the current lexeme.
  */
 static Token make_token(Lexer* lexer, NsqlTokenType type) {
     Token token;
@@ -145,14 +146,11 @@ static bool is_alnum(char c) {
 }
 
 /**
- * Check if the current lexeme matches a keyword.
+ * Determines if the current lexeme matches a specific keyword and returns its token type.
  *
- * @param lexer The lexer instance.
- * @param start The starting index of the keyword.
- * @param length The length of the keyword.
- * @param rest The remaining characters after the keyword.
- * @param type The token type for the keyword.
- * @return The token type if it matches, otherwise TOKEN_IDENTIFIER.
+ * Compares a substring of the current lexeme to a given keyword. If it matches exactly, returns the specified keyword token type; otherwise, returns TOKEN_IDENTIFIER.
+ *
+ * @return The keyword token type if matched; otherwise, TOKEN_IDENTIFIER.
  */
 static NsqlTokenType check_keyword(Lexer* lexer, int start, int length, const char* rest,
                                NsqlTokenType type) {
@@ -165,7 +163,11 @@ static NsqlTokenType check_keyword(Lexer* lexer, int start, int length, const ch
 }
 
 /**
- * Scan an identifier or keyword.
+ * @brief Determines the token type for an identifier or keyword.
+ *
+ * Checks the current lexeme in the lexer to see if it matches any reserved SQL-like keywords and returns the corresponding token type. If no keyword matches, returns TOKEN_IDENTIFIER.
+ *
+ * @return NsqlTokenType The token type corresponding to the matched keyword, or TOKEN_IDENTIFIER if no keyword is matched.
  */
 static NsqlTokenType identifier_type(Lexer* lexer) {
     switch (lexer->start[0]) {

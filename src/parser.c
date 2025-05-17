@@ -50,34 +50,35 @@ static char*       copy_token_string(Token* token);
 static const char* token_type_to_op_string(NsqlTokenType type);
 
 /**
- * Format parser errors into a string
+ * @brief Formats all parser errors into a single string.
  *
- * @param parser The parser instance.
- * @param buffer The buffer to write to.
- * @param size The size of the buffer.
- * @return The number of bytes written (excluding null terminator).
+ * Writes a human-readable summary of all errors encountered during parsing into the provided buffer.
+ *
+ * @param buffer Destination buffer for the formatted error string.
+ * @param size Size of the destination buffer in bytes.
+ * @return Number of bytes written to the buffer, excluding the null terminator.
  */
 size_t parser_format_errors(Parser* parser, char* buffer, size_t size) {
     return format_errors(&parser->errors, buffer, size);
 }
 
 /**
- * Format parser errors as JSON
+ * Formats all parser errors into a JSON string.
  *
- * @param parser The parser instance.
- * @param buffer The buffer to write to.
- * @param size The size of the buffer.
- * @return The number of bytes written (excluding null terminator).
+ * Writes a JSON representation of the parser's collected errors into the provided buffer.
+ *
+ * @param buffer Destination buffer for the JSON output.
+ * @param size Size of the buffer in bytes.
+ * @return Number of bytes written to the buffer, excluding the null terminator.
  */
 size_t parser_format_errors_json(Parser* parser, char* buffer, size_t size) {
     return format_errors_json(&parser->errors, buffer, size);
 }
 
 /**
- * Initialize the parser with a lexer.
+ * @brief Initializes a parser for NSQL input using the provided lexer.
  *
- * @param parser The parser instance.
- * @param lexer The lexer instance.
+ * Sets up the parser state, resets error tracking, initializes the error context, and advances to the first token.
  */
 void parser_init(Parser* parser, Lexer* lexer) {
     parser->lexer            = lexer;
@@ -92,9 +93,9 @@ void parser_init(Parser* parser, Lexer* lexer) {
 }
 
 /**
- * Free parser resources.
+ * Frees resources associated with the parser, including its error context.
  *
- * @param parser The parser instance.
+ * Call this function to release memory allocated for parser error tracking after parsing is complete.
  */
 void parser_free(Parser* parser) {
     // Free error context
@@ -119,23 +120,20 @@ static void advance(Parser* parser) {
 }
 
 /**
- * Check if the current token is of the expected type.
+ * @brief Determines if the current token matches the specified type.
  *
- * @param parser The parser instance.
- * @param type The expected token type.
- *
- * @return true if the token matches the expected type, false otherwise.
+ * @param type The token type to check against the current token.
+ * @return true if the current token is of the given type, false otherwise.
  */
 static bool check(Parser* parser, NsqlTokenType type) {
     return parser->current.type == type;
 }
 
 /**
- * Match and consume the current token if it matches the expected type.
+ * Consumes the current token if it matches the specified type.
  *
- * @param parser The parser instance.
- * @param type The expected token type.
- * @return true if the token was consumed, false otherwise.
+ * @param type The token type to match against the current token.
+ * @return true if the token was matched and consumed; false otherwise.
  */
 static bool match(Parser* parser, NsqlTokenType type) {
     if (!check(parser, type))
@@ -145,12 +143,9 @@ static bool match(Parser* parser, NsqlTokenType type) {
 }
 
 /**
- * Consume the current token if it matches the expected type.
- * If it doesn't match, report an error with the provided message.
+ * @brief Consumes the current token if it matches the expected type, or reports an error.
  *
- * @param parser The parser instance.
- * @param type The expected token type.
- * @param message The error message to report if the token doesn't match.
+ * Advances the parser if the current token matches the specified type; otherwise, reports a parsing error with the given message.
  */
 static void consume(Parser* parser, NsqlTokenType type, const char* message) {
     if (parser->current.type == type) {
@@ -172,11 +167,9 @@ static void error_at_current(Parser* parser, const char* message) {
 }
 
 /**
- * Report error at given token.
+ * Reports a parsing error at the specified token, records it in the parser's error context, and initiates error recovery.
  *
- * @param parser The parser instance.
- * @param token The token where the error occurred.
- * @param message The error message.
+ * Sets the parser into panic mode to prevent cascading errors and triggers synchronization to recover from the error state.
  */
 static void error_at(Parser* parser, Token* token, const char* message) {
     if (parser->panic_mode)
@@ -276,10 +269,12 @@ static char* copy_token_string(Token* token) {
 }
 
 /**
- * Convert token type to operator string representation.
+ * @brief Returns the string representation of an operator token type.
  *
- * @param type The token type.
- * @return The operator string representation.
+ * Converts a given NsqlTokenType representing an operator to its corresponding string form (e.g., "+", "AND", "!=").
+ *
+ * @param type The operator token type.
+ * @return The string representation of the operator, or "UNKNOWN" if not recognized.
  */
 static const char* token_type_to_op_string(NsqlTokenType type) {
     switch (type) {
@@ -1211,10 +1206,11 @@ static Node* parse_expression(Parser* parser) {
 }
 
 /**
- * Parse logical OR expression.
+ * @brief Parses a logical OR expression and constructs the corresponding AST node.
  *
- * @param parser The parser instance.
- * @return The AST node representing the logical OR expression.
+ * Parses left-associative logical OR (`OR`) expressions, combining sub-expressions into a binary expression tree.
+ *
+ * @return Pointer to the AST node representing the logical OR expression.
  */
 static Node* parse_logic_or(Parser* parser) {
     Node* left = parse_logic_and(parser);
@@ -1235,10 +1231,12 @@ static Node* parse_logic_or(Parser* parser) {
 }
 
 /**
- * Parse logical AND expression.
+ * @brief Parses a logical AND expression and constructs the corresponding AST node.
+ *
+ * Parses left-associative logical AND operations, combining equality expressions into a binary expression tree.
  *
  * @param parser The parser instance.
- * @return The AST node representing the logical AND expression.
+ * @return Node* The AST node representing the logical AND expression.
  */
 static Node* parse_logic_and(Parser* parser) {
     Node* left = parse_equality(parser);
@@ -1259,10 +1257,11 @@ static Node* parse_logic_and(Parser* parser) {
 }
 
 /**
- * Parse equality expression.
+ * Parses an equality or inequality expression and constructs the corresponding AST node.
  *
- * @param parser The parser instance.
- * @return The AST node representing the equality expression.
+ * Supports chaining of equality (`=`) and inequality (`!=`) operators, producing a left-associative binary expression tree.
+ *
+ * @return The root AST node representing the parsed equality expression.
  */
 static Node* parse_equality(Parser* parser) {
     Node* left = parse_comparison(parser);
@@ -1283,10 +1282,9 @@ static Node* parse_equality(Parser* parser) {
 }
 
 /**
- * Parse comparison expression.
+ * Parses a comparison expression with relational operators (<, <=, >, >=).
  *
- * @param parser The parser instance.
- * @return The AST node representing the comparison expression.
+ * @return An AST node representing the parsed comparison expression, or a simpler term if no comparison operator is present.
  */
 static Node* parse_comparison(Parser* parser) {
     Node* left = parse_term(parser);
@@ -1308,10 +1306,12 @@ static Node* parse_comparison(Parser* parser) {
 }
 
 /**
- * Parse term expression.
+ * @brief Parses an addition or subtraction expression.
  *
- * @param parser The parser instance.
- * @return The AST node representing the term expression.
+ * Parses a term consisting of one or more factors combined with '+' or '-' operators, constructing a left-associative binary expression AST node.
+ *
+ * @param parser Parser instance.
+ * @return Node* AST node representing the parsed term expression.
  */
 static Node* parse_term(Parser* parser) {
     Node* left = parse_factor(parser);
@@ -1332,10 +1332,12 @@ static Node* parse_term(Parser* parser) {
 }
 
 /**
- * Parse factor expression.
+ * @brief Parses a factor expression involving multiplication, division, or modulo.
+ *
+ * Parses left-associative binary expressions with '*', '/', or '%' operators, building the corresponding AST subtree.
  *
  * @param parser The parser instance.
- * @return The AST node representing the factor expression.
+ * @return Node* The AST node representing the parsed factor expression.
  */
 static Node* parse_factor(Parser* parser) {
     Node* left = parse_unary(parser);
@@ -1357,10 +1359,11 @@ static Node* parse_factor(Parser* parser) {
 }
 
 /**
- * Parse unary expression.
+ * Parses a unary expression, handling logical NOT and negation operators.
  *
- * @param parser The parser instance.
- * @return The AST node representing the unary expression.
+ * Returns an AST node representing either a unary operation or a primary expression if no unary operator is present.
+ *
+ * @return Node* The AST node for the parsed unary expression.
  */
 static Node* parse_unary(Parser* parser) {
     if (match(parser, TOKEN_NOT) || match(parser, TOKEN_MINUS)) {
