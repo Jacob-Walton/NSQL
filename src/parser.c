@@ -233,12 +233,7 @@ static void synchronize(Parser* parser) {
         advance(parser);
     }
 #else
-    // Reset the parser, end statement processing
-    parser->panic_mode       = false;
-    parser->had_error        = false;
-    parser->error.message    = NULL;
-    parser->error.line       = 0;
-    parser->error.panic_mode = false;
+    parser->panic_mode = false;
 #endif
 }
 
@@ -2096,12 +2091,6 @@ void print_ast(Node* node, int indent) {
 }
 
 /**
- * Parse a complete program, which may contain multiple queries
- *
- * @param parser The parser instance.
- * @return The AST node representing the program.
- */
-/**
  * Parse a complete program, which may contain multiple queries.
  *
  * @param parser The parser instance.
@@ -2116,7 +2105,8 @@ Node* parse_program(Parser* parser) {
     program->as.program.statements = (Node**)malloc(capacity * sizeof(Node*));
     if (program->as.program.statements == NULL) {
         fprintf(stderr, "Error: Out of memory\n");
-        exit(EXIT_FAILURE);
+        free_node(program);
+        return NULL;
     }
 
     program->as.program.count = 0;
@@ -2130,12 +2120,14 @@ Node* parse_program(Parser* parser) {
         if (stmt != NULL && !parser->had_error) {
             if (program->as.program.count >= capacity) {
                 capacity *= 2;
-                program->as.program.statements =
-                    (Node**)realloc(program->as.program.statements, capacity * sizeof(Node*));
-                if (program->as.program.statements == NULL) {
+                Node** new_statements = (Node**)realloc(program->as.program.statements, capacity * sizeof(Node*));
+                if (new_statements == NULL) {
                     fprintf(stderr, "Error: Out of memory\n");
-                    exit(EXIT_FAILURE);
+                    free_node(stmt);
+                    free_node(program);
+                    return NULL;
                 }
+                program->as.program.statements = new_statements;
             }
 
             program->as.program.statements[program->as.program.count++] = stmt;
@@ -2146,6 +2138,11 @@ Node* parse_program(Parser* parser) {
                 break;
             }
         } else {
+            // Free the statement if we had an error
+            if (stmt != NULL) {
+                free_node(stmt);
+            }
+            
             // Skip to the next statement after an error
             synchronize(parser);
             if (parser->had_error) {
@@ -2153,6 +2150,12 @@ Node* parse_program(Parser* parser) {
                 break;
             }
         }
+    }
+
+    // If we had errors and no statements, free the program
+    if (parser->had_error && program->as.program.count == 0) {
+        free_node(program);
+        return NULL;
     }
 
     return program;
