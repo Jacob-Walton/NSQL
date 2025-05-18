@@ -216,8 +216,6 @@ static void error_at(Parser* parser, Token* token, const char* message) {
  */
 static void synchronize(Parser* parser) {
 #ifdef ENABLE_SYNC_RECOVERY
-    parser->panic_mode = false;
-
     while (parser->current.type != TOKEN_EOF) {
         // Skip until we find a query start keyword
         switch (parser->current.type) {
@@ -232,14 +230,8 @@ static void synchronize(Parser* parser) {
 
         advance(parser);
     }
-#else
-    // Reset the parser, end statement processing
-    parser->panic_mode       = false;
-    parser->had_error        = false;
-    parser->error.message    = NULL;
-    parser->error.line       = 0;
-    parser->error.panic_mode = false;
 #endif
+    parser->panic_mode = false;
 }
 
 /**
@@ -2096,12 +2088,6 @@ void print_ast(Node* node, int indent) {
 }
 
 /**
- * Parse a complete program, which may contain multiple queries
- *
- * @param parser The parser instance.
- * @return The AST node representing the program.
- */
-/**
  * Parse a complete program, which may contain multiple queries.
  *
  * @param parser The parser instance.
@@ -2116,7 +2102,9 @@ Node* parse_program(Parser* parser) {
     program->as.program.statements = (Node**)malloc(capacity * sizeof(Node*));
     if (program->as.program.statements == NULL) {
         fprintf(stderr, "Error: Out of memory\n");
-        exit(EXIT_FAILURE);
+        parser->had_error = true;  // Set error flag when allocation fails
+        free_node(program);
+        return NULL;
     }
 
     program->as.program.count = 0;
@@ -2129,13 +2117,17 @@ Node* parse_program(Parser* parser) {
         // Add the statement to the program if parsing succeeded
         if (stmt != NULL && !parser->had_error) {
             if (program->as.program.count >= capacity) {
-                capacity *= 2;
-                program->as.program.statements =
-                    (Node**)realloc(program->as.program.statements, capacity * sizeof(Node*));
-                if (program->as.program.statements == NULL) {
+                Node** new_statements = (Node**)realloc(program->as.program.statements, 
+                                                      capacity * 2 * sizeof(Node*));
+                if (new_statements == NULL) {
                     fprintf(stderr, "Error: Out of memory\n");
-                    exit(EXIT_FAILURE);
+                    parser->had_error = true;  // Set error flag when allocation fails
+                    free_node(stmt);
+                    free_node(program);
+                    return NULL;
                 }
+                program->as.program.statements = new_statements;
+                capacity *= 2;  // Expand capacity after successful allocation
             }
 
             program->as.program.statements[program->as.program.count++] = stmt;
@@ -2146,13 +2138,23 @@ Node* parse_program(Parser* parser) {
                 break;
             }
         } else {
-            // Skip to the next statement after an error
-            synchronize(parser);
+            // Free the statement if we had an error
+            if (stmt != NULL) {
+                free_node(stmt);
+            }
+            
+            // error_at() already performed synchronization; avoid double-sync
             if (parser->had_error) {
                 // If we couldn't recover, just exit
                 break;
             }
         }
+    }
+
+    // If we had errors and no statements, free the program
+    if (parser->had_error && program->as.program.count == 0) {
+        free_node(program);
+        return NULL;
     }
 
     return program;
