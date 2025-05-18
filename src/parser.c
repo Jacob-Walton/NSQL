@@ -216,8 +216,6 @@ static void error_at(Parser* parser, Token* token, const char* message) {
  */
 static void synchronize(Parser* parser) {
 #ifdef ENABLE_SYNC_RECOVERY
-    parser->panic_mode = false;
-
     while (parser->current.type != TOKEN_EOF) {
         // Skip until we find a query start keyword
         switch (parser->current.type) {
@@ -232,9 +230,8 @@ static void synchronize(Parser* parser) {
 
         advance(parser);
     }
-#else
-    parser->panic_mode = false;
 #endif
+    parser->panic_mode = false;
 }
 
 /**
@@ -2105,6 +2102,7 @@ Node* parse_program(Parser* parser) {
     program->as.program.statements = (Node**)malloc(capacity * sizeof(Node*));
     if (program->as.program.statements == NULL) {
         fprintf(stderr, "Error: Out of memory\n");
+        parser->had_error = true;  // Set error flag when allocation fails
         free_node(program);
         return NULL;
     }
@@ -2119,15 +2117,17 @@ Node* parse_program(Parser* parser) {
         // Add the statement to the program if parsing succeeded
         if (stmt != NULL && !parser->had_error) {
             if (program->as.program.count >= capacity) {
-                capacity *= 2;
-                Node** new_statements = (Node**)realloc(program->as.program.statements, capacity * sizeof(Node*));
+                Node** new_statements = (Node**)realloc(program->as.program.statements, 
+                                                      capacity * 2 * sizeof(Node*));
                 if (new_statements == NULL) {
                     fprintf(stderr, "Error: Out of memory\n");
+                    parser->had_error = true;  // Set error flag when allocation fails
                     free_node(stmt);
                     free_node(program);
                     return NULL;
                 }
                 program->as.program.statements = new_statements;
+                capacity *= 2;  // Expand capacity after successful allocation
             }
 
             program->as.program.statements[program->as.program.count++] = stmt;
@@ -2143,8 +2143,7 @@ Node* parse_program(Parser* parser) {
                 free_node(stmt);
             }
             
-            // Skip to the next statement after an error
-            synchronize(parser);
+            // error_at() already performed synchronization; avoid double-sync
             if (parser->had_error) {
                 // If we couldn't recover, just exit
                 break;
